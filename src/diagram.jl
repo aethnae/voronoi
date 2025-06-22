@@ -2,7 +2,7 @@
 
 module DCEL
 
-export Vertex, HalfEdge, Face, DCEL
+export Vertex, HalfEdge, Face, DCELStruct
 
 struct Vertex   # Represents a point in the plane, placed by a player.
     x::Float64
