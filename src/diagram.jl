@@ -2,30 +2,29 @@
 
 module DCEL
 
-export Vertex, HalfEdge, Face, DCELStruct
+export Vertex, HalfEdge, Face, Dreieck, Delaunay
+
+abstract type Face end
 
 struct Vertex   # Represents a point in the plane, placed by a player.
     x::Float64
     y::Float64
 end
 
-struct HalfEdge
-    origin::Int           # Index of vertice from which half-edge emanates.
-    twin::Int             # Index from halfedges array (the dual edge in the opposite direction).
-    next::Int             # Next halfedge of traversal sequence (given by it's index).
-    prev::Int             # Previous halfedge in the traversal sequence (given by it's index).
-    incident_face::Int    # Index of face that borders half-edge to the left (when traversing).
+mutable struct HalfEdge
+    origin::Vertex          # Origin vertex of the half-edge
+    twin::HalfEdge          # Twin half-edge
+    next::HalfEdge          # Next half-edge in the face
+    prev::HalfEdge          # Previous half-edge in the face
+    face::Face              # Face to which this half-edge belongs
 end
 
-struct Face
-    site::Int             # Index of generator point placed by a player.
-    outer_component::Int  # Index into halfedges array (one of the bounding edges).
+mutable struct Dreieck <: Face
+    halfedge::HalfEdge      # One of the half-edges of the face
 end
 
-struct DCELStruct
-    vertices::Vector{Vertex}
-    halfedges::Vector{HalfEdge}
-    faces::Vector{Face}
+struct Delaunay
+    triangles::Set{Dreieck}  # Set of triangles in the Delaunay triangulation
 end
 
 end
