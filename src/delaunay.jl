@@ -1,6 +1,5 @@
 include("diagram.jl")
-using .DCEL
-using LinearAlgebra
+using .DCEL, LinearAlgebra
 
 #=
 Neuer Punkt p
@@ -30,14 +29,13 @@ function check_circumference(e::HalfEdge)::Bool
 end
 
 """
-	is_left(p::Vertex, e::HalfEdge, D::Delaunay)::Bool
+	is_left(p::Vertex, e::HalfEdge)::Bool
 
 Uses dot product to determine if a point p is left of a
 directed edge e. If the point lies exactly on the edge,
 it is not considered left of the edge.
 """
-function is_left(p::Vertex, ab::HalfEdge, D::Delaunay)::Bool
-	a,b = ab.origin, ab.next.origin
+function is_left(p::Vertex, a::Vertex, b::Vertex)::Bool
 	return (p.x - a.x) * (a.y - b.y) + (p.y - a.y) * (b.x - a.x) > 0
 end
 
@@ -51,8 +49,9 @@ edge. If such a triangle does not exist, nothing is returned.
 """
 function find_triangle(p::Vertex, D::Delaunay)::Union{Face,Nothing}
 	for triangle in D.triangles
-		e = triangle.halfedge
-		if is_left(p,e,D) && is_left(p,e.next,D) && is_left(p,e.prev,D)
+		ab = triangle.halfedge
+		a, b, c = ab.origin, ab.next.origin, ab.prev.origin
+		if is_left(p,a,b) && is_left(p,b,c) && is_left(p,c,a)
 			return triangle
 		end
 	end
@@ -108,6 +107,11 @@ function recursive_flip!(ab::HalfEdge, D::Delaunay)::Delaunay
 end
 
 function insert_point!(p::Vertex, D::Delaunay)::Delaunay
+	if isempty(D.triangles)
+		# Construct large triangle
+		
+	end
+
 	abc = find_triangle(p, D)
 	@assert abc != nothing "Point $(p) is not inside any triangle!"
 
