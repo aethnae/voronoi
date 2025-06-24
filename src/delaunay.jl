@@ -1,5 +1,6 @@
 include("diagram.jl")
 using .DCEL
+using LinearAlgebra
 
 #=
 Neuer Punkt p
@@ -11,8 +12,21 @@ Neuer Punkt p
 Schritt 3: Umkreis-Test
 =#
 
-function check_umkreis(p::Vertex, ab::HalfEdge)::Bool
-	return true
+"""
+	check_circumference(e::HalfEdge)::Bool
+
+Checks if the circumcircle of the triangle formed by the half-edge `e` and its adjacent half-edge contains any other vertices.
+Returns True if the circumcircle contains no other vertices.
+"""
+function check_circumference(e::HalfEdge)::Bool
+	a = e.origin
+	b = e.next.origin
+	c = e.prev.origin
+
+	adj = e.twin
+	d = adj.prev.origin
+
+	return det([a.x a.y a.x^2+a.y^2 1; b.x b.y b.x^2+b.y^2 1; c.x c.y c.x^2+c.y^2 1; d.x d.y d.x^2+d.y^2 1]) > 0
 end
 
 """
@@ -83,8 +97,8 @@ Checks if edge AB in triangle ABC should be flipped.
 If yes: calls `flip!`, then recursively checks AP and PB.
 """
 function recursive_flip!(ab::HalfEdge, D::Delaunay)::Delaunay
-	if !check_umkreis(p,ab)
-		return nothing
+	if check_circumference(ab)
+		return D
 	end
 	D, ap, pb = flip!(ab, D)
 	D = recursive_flip!(ap, D)
