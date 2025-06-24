@@ -1,5 +1,6 @@
 include("diagram.jl")
 using .DCEL
+using LinearAlgebra
 
 #=
 Neuer Punkt p
@@ -10,6 +11,25 @@ Neuer Punkt p
 
 Schritt 3: Umkreis-Test
 =#
+
+
+"""
+	check_circumference(e::HalfEdge)::Bool
+
+Checks if the circumcircle of the triangle formed by the half-edge `e` and its adjacent half-edge contains any other vertices.
+Returns True if the circumcircle contains no other vertices.
+"""
+function check_circumference(e::HalfEdge)::Bool
+	a = e.origin
+	b = e.next.origin
+	c = e.prev.origin
+
+	adj = e.twin
+	d = adj.prev.origin
+
+	return det([a.x a.y a.x^2+a.y^2 1; b.x b.y b.x^2+b.y^2 1; c.x c.y c.x^2+c.y^2 1; d.x d.y d.x^2+d.y^2 1]) > 0
+end
+
 
 """
 	is_left(p::Vertex, e::HalfEdge, D::Delaunay)::Bool
@@ -45,7 +65,13 @@ function find_triangle(p::Vertex, D::Delaunay)::Union{Face,Nothing}
 	return nothing
 end
 
-function flip!(e::HalfEdge, D::Delaunay):Tuple{Delaunay, HalfEdge, HalfEdge}
+
+"""
+	flip!(e::HalfEdge, D::Delaunay)::Tuple{Delaunay, HalfEdge, HalfEdge}
+
+Flips the edge e in the Delaunay triangulation D. Returns the updated triangulation and the two new half-edges. The edge e is replaced by two new edges that connect the vertices of the triangle opposite to e.
+"""
+function flip!(e::HalfEdge, D::Delaunay)::Tuple{Delaunay, HalfEdge, HalfEdge}
 	abc, bap = e.face, e.twin.face
 	bc, ca = e.next, e.next.next
 	ba, ap, pb = e.twin, e.twin.next, e.twin.next.next
