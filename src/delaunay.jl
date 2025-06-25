@@ -1,35 +1,42 @@
+module Logic
+
 include("diagram.jl")
 using .DCEL, LinearAlgebra
 
-#=
-Neuer Punkt p
-	1. Finde Dreieck ABC, in dem p liegt
-	2. Ersetze ABC durch ABP, BCP, CAP
-	3. Prüfe, ob drei Umkreise keine weiteren Ecken enthalten
-	4. Edge-Flip rekursiv
-
-Schritt 3: Umkreis-Test
-=#
+export circumcenter, is_delaunay, is_left, find_triangle, flip!, recursive_flip!, insert_point!
 
 """
-	check_circumference(e::HalfEdge)::Bool
+	circumcenter(T::Triangle)::Vertex
 
-Checks if the circumcircle of the triangle formed by the half-edge `e` and its adjacent half-edge contains any other vertices.
-Returns True if the circumcircle contains no other vertices.
+Calculates circumcenter coordinates of a given triangle.
 """
-function check_circumference(e::HalfEdge)::Bool
-	a = e.origin
-	b = e.next.origin
-	c = e.prev.origin
-
-	adj = e.twin
-	d = adj.prev.origin
-
-	return det([a.x a.y a.x^2+a.y^2 1; b.x b.y b.x^2+b.y^2 1; c.x c.y c.x^2+c.y^2 1; d.x d.y d.x^2+d.y^2 1]) > 0
+function circumcenter(T::Triangle)::Vertex
+	D = 2*(a.x * (b.y-c.y) + b.x * (c.y-a.y) + c.x * (a.y - b.y))
+    X = ((a.x^2 + a.y^2)*(b.y - c.y) + (b.x^2 + b.y^2)*(c.y - a.y) + (c.x^2 + c.y^2)*(a.y - b.y)) / D
+    Y = ((a.x^2 + a.y^2)*(c.x - b.x) + (b.x^2 + b.y^2)*(a.x - c.x) + (c.x^2 + c.y^2)*(b.x - a.x)) / D
+    return Vertex(X,Y)
 end
 
 """
-	is_left(p::Vertex, e::HalfEdge)::Bool
+	is_delaunay(ab::Edge)::Bool
+
+Checks if the Delaunay condition is upheld for this edge.
+Borders always fulfill the Delaunay condition. For a half-edge
+AB in triangle ABC, the point D of triangle BAD must not be in
+the circumcircle of ABC.
+"""
+function is_delaunay(ab::Edge)::Bool
+	if ab isa Border
+		return true
+	end
+	ba = ab.twin
+	a, b, c, d = ab.origin, ab.next.origin, ab.prev.origin, ba.prev.origin
+
+	return det([a.x a.y a.x^2+a.y^2 1; b.x b.y b.x^2+b.y^2 1; c.x c.y c.x^2+c.y^2 1; d.x d.y d.x^2+d.y^2 1]) <= 0
+end
+
+"""
+	is_left(p::Vertex, a::Vertex, b::Vertex)::Bool
 
 Uses dot product to determine if a point p is left of a
 directed edge e. If the point lies exactly on the edge,
@@ -41,15 +48,15 @@ end
 
 
 """
-    find_triangle(p::Vertex, D::Delaunay)::Face
+    find_triangle(p::Vertex, D::Delaunay)::Triangle
 
 Finds the triangle containing the given vertex. The vertex
 is to the left of each directed edge and does not lie on any
 edge. If such a triangle does not exist, nothing is returned.
 """
-function find_triangle(p::Vertex, D::Delaunay)::Union{Face,Nothing}
+function find_triangle(p::Vertex, D::Delaunay)::Union{Triangle,Nothing}
 	for triangle in D.triangles
-		ab = triangle.halfedge
+		ab = triangle.edge
 		a, b, c = ab.origin, ab.next.origin, ab.prev.origin
 		if is_left(p,a,b) && is_left(p,b,c) && is_left(p,c,a)
 			return triangle
@@ -59,7 +66,7 @@ function find_triangle(p::Vertex, D::Delaunay)::Union{Face,Nothing}
 end
 
 """
-    flip!(ab::HalfEdge, D::Delaunay):Tuple{Delaunay, HalfEdge, HalfEdge}
+    flip!(ab::HalfEdge, D::Delaunay):Tuple{Delaunay, Edge, Edge}
 
 Should be called when the following conditions are met:
 - AB is in triangle ABC,
@@ -69,7 +76,7 @@ Should be called when the following conditions are met:
 Then it replaces triangles ABC, BAP with APC, BCP.
 Returns updated Delaunay structure and new edges AP,PB.
 """
-function flip!(ab::HalfEdge, D::Delaunay):Tuple{Delaunay, HalfEdge, HalfEdge}
+function flip!(ab::HalfEdge, D::Delaunay)::Tuple{Delaunay, Edge, Edge}
 	# Gather edges and triangles
 	bc, ca = ab.next, ab.prev
 	ba, ap, pb = ab.twin, ab.twin.next, ab.twin.prev
@@ -77,26 +84,20 @@ function flip!(ab::HalfEdge, D::Delaunay):Tuple{Delaunay, HalfEdge, HalfEdge}
 	p, c = pb.origin, ca.origin
 
 	# Construct apc, bcp
-	pc, cp, apc, bcp = HalfEdge(p, cp, ca, ap, apc), HalfEdge(c, pc, pb, bc, bcp),
-		Dreieck(pc), Dreieck(cp)
+	pc, cp = HalfEdges(p,c)
+	apc, bcp = Triangle(ap, pc, cp), Triangle(bc, cp, pb)
 
-	# Replace
-	D.triangles = delete!(D.triangles, abc)
-	D.triangles = delete!(D.triangles, bap)
-	D.triangles = push!(D.triangles, apc)
-	D.triangles = push!(D.triangles, bcp)
-
-	return D, ap, pb
+	return D-abc-bap+apc+bcp, ap, pb
 end
 
 """
-	recursive_flip!(ab::HalfEdge, D::Delaunay)::Delaunay
+	recursive_flip!(ab::Edge, D::Delaunay)::Delaunay
 
-Checks if edge AB in triangle ABC should be flipped.
-If yes: calls `flip!`, then recursively checks AP and PB.
+Flips edge AB if it breaks the Delaunay condition. If flipped,
+recursively checks AP and PB.
 """
-function recursive_flip!(ab::HalfEdge, D::Delaunay)::Delaunay
-	if check_circumference(ab)
+function recursive_flip!(ab::Edge, D::Delaunay)::Delaunay
+	if is_delaunay(ab)
 		return D
 	end
 	D, ap, pb = flip!(ab, D)
@@ -108,35 +109,27 @@ end
 
 function insert_point!(p::Vertex, D::Delaunay)::Delaunay
 	if isempty(D.triangles)
-		# Construct large triangle
-		
+		xy, yz, zx = Border(Vertex(-2,0)), Border(Vertex(3,0)), Border(Vertex(0,3))
+		D = D + Triangle(xy, yz, zx)
 	end
 
 	abc = find_triangle(p, D)
 	@assert abc != nothing "Point $(p) is not inside any triangle!"
 
 	# Gather old objects
-	ab, bc, ca = abc.halfedge, abc.halfedge.next, abc.halfedge.prev
+	ab, bc, ca = abc.edge, abc.edge.next, abc.edge.prev
 	a,b,c = ab.origin, bc.origin, ca.origin
 
-	# Construct edges AP, BP, CP, their twins, and ABP, BCP, CAP
-	ap, bp, cp, pa, pb, pc, abp, bcp, cap =
-		HalfEdge(a, pa, pc, ca, cap),
-		HalfEdge(b, pb, pa, ab, abp),
-		HalfEdge(c, pc, pb, bc, bcp),
-		HalfEdge(p, ap, ab, bp, abp),
-		HalfEdge(p, bp, bc, cp, bcp),
-		HalfEdge(p, cp, ca, ap, cap),
-		Triangle(ab), Triangle(bc), Triangle(ca)
+	# Construct edges and triangles
+	(ap, pa), (bp, pb), (cp, pc) = HalfEdges(a,p), HalfEdges(b,p), HalfEdges(c,p)
+	abp, bcp, cap = Triangle(ab, bp, pa), Triangle(bc, cp, pb), Triangle(ca, ap, pc)
 
-	D.triangles = delete!(D.triangles, abc)
-	D.triangles = push!(D.triangles, abp)
-	D.triangles = push!(D.triangles, bcp)
-	D.triangles = push!(D.triangles, cap)
-
+	D = D - abc + abp + bcp + cap
 	D = recursive_flip!(ab,D)
 	D = recursive_flip!(bc,D)
 	D = recursive_flip!(ca,D)
 
 	return D
+end
+
 end

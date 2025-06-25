@@ -1,22 +1,22 @@
 include("delaunay.jl")
 
-using Random, Test
+using Random, Test, .Logic, .Logic.DCEL
 
 Random.seed!(42)
 
-@testset "Delaunay.jl" begin
+#=
+@testset "is_left" begin
 	for _ = 1:100
-		a = Vertex(rand(Float64), rand(Float64))
-		b = Vertex(rand(Float64), rand(Float64))
-		c = Vertex(0,0)
-		p = Vertex(rand(Float64), rand(Float64))
+		a = Vertex(round(rand(Float64)*1000)/1000, round(rand(Float64)*1000)/1000)
+		b = Vertex(round(rand(Float64)*1000)/1000, round(rand(Float64)*1000)/1000)
+		p = Vertex(round(rand(Float64)*1000)/1000, round(rand(Float64)*1000)/1000)
 
 		if a == b
 			continue
 		end
 
 		L = is_left(p,a,b)
-
+		# Alternate messy calculation using y=mx+b
 		if a.y == b.y
 			@test (a.x < b.x) == (p.y > a.y)
 		elseif a.x == b.x
@@ -27,5 +27,41 @@ Random.seed!(42)
 			Lcomp = (p.y > y_g) == (b.x > a.x)
 			@test Lcomp == L
 		end
+	end
+end
+=#
+
+@testset "Massive test" begin
+	D = Delaunay(Set{Triangle}())
+
+	for _ = 1:100
+		x = Vertex(round(rand(Float64)*1000)/1000, round(rand(Float64)*1000)/1000)
+
+		println("Attempting to insert:", x)
+		D = insert_point!(x, D)
+		println("After insertion:", D)
+
+		println("Testing if all triangles are circular connected")
+		for T in D.triangles
+			e1, e2, e3 = T.edge, T.edge.next, T.edge.next.next
+			@test e2.prev === e1
+			@test e3.prev === e2
+			@test e3.next === e1
+		end
+
+		println("Testing if half-edges have correct origins")
+		for T in D.triangles
+			for e in (T.edge, T.edge.next, T.edge.prev)
+				@test e isa Border || e.twin.origin === e.next.origin
+			end
+		end
+
+		println("Testing if Delaunay condition is upheld")
+		for T in D.triangles
+			for e in (T.edge, T.edge.next, T.edge.prev)
+				@test is_delaunay(e)
+			end
+		end
+
 	end
 end
