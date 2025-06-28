@@ -76,7 +76,7 @@ function flip!(ab::HalfEdge, D::Delaunay)::Tuple{Delaunay, Edge, Edge}
 
 	# Construct apc, bcp
 	pc, cp = HalfEdges(p,c)
-	apc, bcp = Triangle(ap, pc, cp), Triangle(bc, cp, pb)
+	apc, bcp = Triangle(ap, pc, ca), Triangle(bc, cp, pb)
 
 	return D + apc + bcp, ap, pb
 end
@@ -91,18 +91,15 @@ function recursive_flip!(ab::Edge, D::Delaunay)::Delaunay
 	if is_delaunay(ab)
 		return D
 	end
+
 	D, ap, pb = flip!(ab, D)
 	D = recursive_flip!(ap, D)
 	D = recursive_flip!(pb, D)
-
 	return D
 end
 
 function insert_point_no_flip!(p::Vertex, D::Delaunay)::Tuple{Delaunay,Edge,Edge,Edge}
-	if isempty(D.triangles)
-		xy, yz, zx = Border(Vertex(-2,0)), Border(Vertex(3,0)), Border(Vertex(0,3))
-		D = D + Triangle(xy, yz, zx)
-	end
+	@assert !isempty(D.triangles) "This should not be empty!"
 
 	abc = find_triangle(p, D)
 	@assert abc != nothing "Point $(p) is not inside any triangle!"

@@ -47,7 +47,10 @@ function HalfEdges(a::Vertex,b::Vertex)::Tuple{HalfEdge, HalfEdge}
     return ab, ba
 end
 
-Base.show(io::IO, e::HalfEdge) = print(io, "[$(e.origin)->$(e.next.origin)]")
+function Base.show(io::IO, e::HalfEdge)
+    v = e.next != nothing ? e.next.origin : nothing
+    print(io, "[$(e.origin)->$(v)]")
+end
 
 #========================================================================#
 mutable struct Triangle <: Face
@@ -67,6 +70,8 @@ Base.show(io::IO, T::Triangle) = print(io, "Tri{$(T.edge), $(T.edge.next), $(T.e
 #========================================================================#
 mutable struct Delaunay
     triangles::Set{Triangle}  # Set of triangles in the Delaunay triangulation
+
+    Delaunay() = new(Set([Triangle(Border(Vertex(-2,0)), Border(Vertex(3,0)), Border(Vertex(0,3)))]))
 end
 
 function Base.show(io::IO, D::Delaunay)
