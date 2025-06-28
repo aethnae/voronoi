@@ -160,21 +160,21 @@ function voronoi(D::Delaunay)
     for T in D.triangles
         c1 = centers[T]
         for e in (T.edge, T.edge.next, T.edge.prev)
-			if !(e isa Border)
-				he = e::HalfEdge
-				if he.twin !== nothing
-					T2 = he.twin.face
-					c2 = centers[T2]
-
-					# in V: he.origin is voronoi-center
-					push!(get!(V, he.origin, Vertex[]), c1)
-					push!(get!(V, he.origin, Vertex[]), c2)
-
-					# in A: c1 <-> c2 in Voronoi-diagram
-					push!(get!(A, c1, Vertex[]), c2)
-					push!(get!(A, c2, Vertex[]), c1)
-				end
+		if !(e isa Border)
+			he = e::HalfEdge
+			if he.twin !== nothing
+				T2 = he.twin.face
+				c2 = centers[T2]
+	
+				# in V: he.origin is voronoi-center
+				push!(get!(V, he.origin, Vertex[]), c1)
+				push!(get!(V, he.origin, Vertex[]), c2)
+	
+				# in A: c1 <-> c2 in Voronoi-diagram
+				push!(get!(A, c1, Vertex[]), c2)
+				push!(get!(A, c2, Vertex[]), c1)
 			end
+		end
         end
     end
     return V, A
