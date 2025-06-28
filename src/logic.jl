@@ -3,7 +3,7 @@ module Logic
 include("dcel.jl")
 using .DCEL, LinearAlgebra
 
-export circumcenter, is_delaunay, is_left, find_triangle, flip!, recursive_flip!, insert_point!, insert_point_no_flip!
+export circumcenter, is_delaunay, is_left, find_triangle, flip!, recursive_flip!, insert_point!, insert_point_no_flip!, voronoi
 
 """
 	is_delaunay(ab::Edge)::Bool
@@ -138,5 +138,46 @@ function circumcenter(T::Triangle)::Vertex
     Y = ((a.x^2 + a.y^2)*(c.x - b.x) + (b.x^2 + b.y^2)*(a.x - c.x) + (c.x^2 + c.y^2)*(b.x - a.x)) / D
     return Vertex(X,Y)
 end
+
+"""
+	voronoi(D::Delaunay)::Tuple{Dict,Dict}
+
+Gives the Voronoi to a Delauney
+Outputs: a dict V where each center of a Voronoi polygon is mapped to its edges.
+		 a dict A where each edge of a Voronoipolygon is mapped to its connected edges
+"""
+function voronoi(D::Delaunay)
+    V = Dict{Vertex, Vector{Vertex}}() # the centers of Voronoi-polygons and their edges
+	A = Dict{Vertex, Vector{Vertex}}() # adjaceny list which Voronoi edges are connected
+
+    # get the centers of every triangle in Delauney
+    centers = Dict{Triangle,Vertex}()
+    for T in D.triangles
+        centers[T] = circumcenter(T)
+    end
+
+    # connect the centers
+    for T in D.triangles
+        c1 = centers[T]
+        for e in (T.edge, T.edge.next, T.edge.prev)
+			if !(e isa Border)
+				he = e::HalfEdge
+				if he.twin !== nothing
+					T2 = he.twin.face
+					c2 = centers[T2]
+
+					# in V: he.origin is voronoi-center
+					push!(get!(V, he.origin, Vertex[]), c1)
+					push!(get!(V, he.origin, Vertex[]), c2)
+
+					# in A: c1 <-> c2 in Voronoi-diagram
+					push!(get!(A, c1, Vertex[]), c2)
+					push!(get!(A, c2, Vertex[]), c1)
+				end
+			end
+        end
+    end
+    return V, A
+end 
 
 end
