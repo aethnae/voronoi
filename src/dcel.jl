@@ -13,6 +13,7 @@ abstract type Face end
 struct Vertex   # Represents a point in the plane, placed by a player.
     x::Float64
     y::Float64
+    player::Union{Int, Nothing}
 end
 
 Base.show(io::IO, v::Vertex) = print(io, "($(v.x), $(v.y))")
