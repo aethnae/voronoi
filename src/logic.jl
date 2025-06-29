@@ -3,7 +3,7 @@ module Logic
 include("dcel.jl")
 using .DCEL, LinearAlgebra
 
-export circumcenter, is_delaunay, is_left, find_triangle, flip!, recursive_flip!, insert_point!, insert_point_no_flip!, voronoi
+export circumcenter, is_delaunay, is_left, find_triangle, flip!, recursive_flip!, insert_point!, insert_point_no_flip!, voronoi, sort_vertices_ccw!, polygon_area, areas
 
 """
 	is_delaunay(ab::Edge)::Bool
@@ -133,6 +133,8 @@ end
 Calculates circumcenter coordinates of a given triangle.
 """
 function circumcenter(T::Triangle)::Vertex
+	ab, bc, ca = T.edge, T.edge.next, T.edge.prev
+	a,b,c = ab.origin, bc.origin, ca.origin
 	D = 2*(a.x * (b.y-c.y) + b.x * (c.y-a.y) + c.x * (a.y - b.y))
     X = ((a.x^2 + a.y^2)*(b.y - c.y) + (b.x^2 + b.y^2)*(c.y - a.y) + (c.x^2 + c.y^2)*(a.y - b.y)) / D
     Y = ((a.x^2 + a.y^2)*(c.x - b.x) + (b.x^2 + b.y^2)*(a.x - c.x) + (c.x^2 + c.y^2)*(b.x - a.x)) / D
@@ -179,5 +181,62 @@ function voronoi(D::Delaunay)
     end
     return V, A
 end 
+
+"""
+	sort_vertices_ccw!(verts::Vector{Tuple{Float64,Float64}})
+
+Sorts a list of 2D points in counterclockwise order around their centroid.
+
+Input: vector of tuples (x, y) where x and y are Float64.
+Output: vector of tuples (x, y) sorted counterclockwise
+"""
+function sort_vertices_ccw!(verts::Vector{Tuple{Float64,Float64}})
+    # Compute centroid
+    cx = mean(x for (x, _) in verts)
+    cy = mean(y for (_, y) in verts)
+
+    # Sort by angle around centroid using atan2
+    sort!(verts, by = v -> atan2(v[2] - cy, v[1] - cx)) # atan2(y,x) variant of arctan, gives the angle between the point (x,y) and the pos x-axis 
+
+    return sorted_v
+end
+
+"""
+	polygon_area(verts::Vector{Tuple{Float64,Float64}})
+
+Calculates the area of a Polygon with n corners with shoelace formula
+
+Input: vector of tuples (x, y), where x and y are Float64, sorted counterclockwise.
+Output: Area of the Polygon
+"""
+function polygon_area(verts::Vector{Tuple{Float64,Float64}})
+    n = length(verts)
+    A = 0.0
+    for i in 1:n
+        x1, y1 = verts[i]
+        x2, y2 = verts[mod1(i+1, n)] # mod1(a,n) gives n if a % n = 0, ensures first point is also last  
+        A += (x1 * y2) - (x2 * y1)
+    end
+    return 0.5 * abs(A)
+end
+
+"""
+	areas(V::Dict{Vertex, Vector{Vertex}})::Dict{Int, Float64}
+
+Calculates the Areas of the players  
+
+Input: Voronoi dict 
+Output: Dict with the area of the polygons belonging to indiviual players
+"""
+function areas(V::Dict{Vertex, Vector{Vertex}})::Dict{Int, Float64}
+	Areas = Dict{Int, Float64}()
+
+	# sort the corners for a Voronoi polygon counterclockwise, calculate its area and add it to the players area
+	for center in keys(V)
+		V[center] = sort_vertices_ccw!(V[center])
+		Areas[center.player] = get!(Areas, center.player, 0) + polygon_area(V[center])
+	end
+	return Areas
+end
 
 end
