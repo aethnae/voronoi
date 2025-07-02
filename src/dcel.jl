@@ -52,7 +52,7 @@ function HalfEdges(a::Vertex,b::Vertex)::Tuple{HalfEdge, HalfEdge}
 end
 
 function Base.show(io::IO, e::HalfEdge)
-    v = e.next != nothing ? e.next.origin : nothing
+    v = e.next !== nothing ? e.next.origin : nothing
     print(io, "[$(e.origin)->$(v)]")
 end
 
