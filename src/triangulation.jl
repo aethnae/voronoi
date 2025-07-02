@@ -1,7 +1,6 @@
 module Triangulation
 
-include("dcel.jl")
-using .DCEL, LinearAlgebra
+using ..DCEL, LinearAlgebra
 
 export insert_point!, test_low_level_logic, test_high_level_logic
 

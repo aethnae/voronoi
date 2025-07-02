@@ -1,7 +1,6 @@
 module Voronoi
 
-include("dcel.jl")
-using .DCEL, LinearAlgebra
+using LinearAlgebra, ..DCEL
 
 export voronoi, sort_vertices_ccw!, polygon_area, areas
 
@@ -16,45 +15,93 @@ function circumcenter(T::Triangle)::Vertex
 	D = 2*(a.x * (b.y-c.y) + b.x * (c.y-a.y) + c.x * (a.y - b.y))
     X = ((a.x^2 + a.y^2)*(b.y - c.y) + (b.x^2 + b.y^2)*(c.y - a.y) + (c.x^2 + c.y^2)*(a.y - b.y)) / D
     Y = ((a.x^2 + a.y^2)*(c.x - b.x) + (b.x^2 + b.y^2)*(a.x - c.x) + (c.x^2 + c.y^2)*(b.x - a.x)) / D
-    return Vertex(X,Y,nothing)
+    return Vertex(X,Y)
 end
 
 """
-	voronoi(D::Delaunay)::Tuple{Dict,Dict}
+	voronoi(D::Delaunay)::Tuple{Dict{Vertex,Vector{Vertex}},Dict{Vertex,Vector{Vertex}}}
 
 Gives the Voronoi to a Delauney
-Outputs: a dict V where each center of a Voronoi polygon is mapped to its edges.
-		 a dict A where each edge of a Voronoipolygon is mapped to its connected edges
+Outputs: a dict V where each center of a Voronoi polygon is mapped to its corners.
+		 a dict A where each corner of a Voronoipolygon is mapped to its connected corners
 """
 function voronoi(D::Delaunay)
-    V = Dict{Vertex, Vector{Vertex}}() # the centers of Voronoi-polygons and their edges
-	A = Dict{Vertex, Vector{Vertex}}() # adjaceny list which Voronoi edges are connected
+    V = Dict{Vertex, Set{Vertex}}() # the centers of Voronoi-polygons and their edges
+	A = Dict{Vertex, Set{Vertex}}() # adjaceny list which Voronoi edges are connected
+
+    # collect all inner points
+    pts = [e.origin for T in D.triangles for e in (T.edge, T.edge.next, T.edge.prev) if !(e isa Border)]
+    pts = unique(pts)
+
+    # only one point -> cell is the whole board
+    if length(pts) == 1
+        V = Dict(pts[1] => Set{Vertex}())
+        A = Dict{Vertex, Set{Vertex}}()
+        return V, A
+    end
+
+    # two points -> board is devided in the middle
+    if length(pts) == 2
+        p, q = pts[1], pts[2]
+        mid = Vertex((p.x + q.x)/2, (p.y + q.y)/2)
+        V = Dict(p => Set([mid]), q => Set([mid]))
+        A = Dict(mid => Set([p, q]), p => Set([mid]), q => Set([mid]))
+        return V, A
+    end
+
+    # Sonderfall: drei Punkte -> gemeinsamer Umkreismittelpunkt
+    if length(pts) == 3
+        # Finde das Dreieck aus genau diesen drei Punkten
+        T0 = findfirst(T -> begin
+            vs = (T.edge.origin, T.edge.next.origin, T.edge.prev.origin)
+            all(v -> any(u -> u === v, pts), vs)
+        end, D.triangles)
+        c = circumcenter(T0)
+        V = Dict{Vertex, Set{Vertex}}(
+            pts[1] => Set([c]),
+            pts[2] => Set([c]),
+            pts[3] => Set([c])
+        )
+        A = Dict{Vertex, Set{Vertex}}(
+            c      => Set(pts),
+            pts[1] => Set([c]),
+            pts[2] => Set([c]),
+            pts[3] => Set([c])
+        )
+        return V, A
+    end
 
     # get the centers of every triangle in Delauney
     centers = Dict{Triangle,Vertex}()
     for T in D.triangles
-        centers[T] = circumcenter(T)
+        # nur Dreiecke ohne Border-Kante
+        if !any(e -> e isa Border, (T.edge, T.edge.next, T.edge.prev))
+            centers[T] = circumcenter(T)
+        end
     end
-
+    println(centers)
     # connect the centers
     for T in D.triangles
         c1 = centers[T]
         for e in (T.edge, T.edge.next, T.edge.prev)
-		if !(e isa Border)
-			he = e::HalfEdge
-			if he.twin !== nothing
-				T2 = he.twin.face
-				c2 = centers[T2]
-	
-				# in V: he.origin is voronoi-center
-				push!(get!(V, he.origin, Vertex[]), c1)
-				push!(get!(V, he.origin, Vertex[]), c2)
-	
-				# in A: c1 <-> c2 in Voronoi-diagram
-				push!(get!(A, c1, Vertex[]), c2)
-				push!(get!(A, c2, Vertex[]), c1)
-			end
-		end
+            if !(e isa Border)
+                he = e::HalfEdge
+                if he.twin !== nothing
+                    T2 = he.twin.face
+                    c2 = centers[T2]
+        
+                    # in V: he.origin is voronoi-center
+                    pts = get!(V, he.origin, Set{Vertex}())
+                    push!(pts, c1)
+                    push!(pts, c2)
+        
+                    # in A: c1 <-> c2 in Voronoi-diagram
+                    s1 = get!(A, c1, Set{Vertex}())
+                    push!(s1, c2)
+                    s2 = get!(A, c2, Set{Vertex}())
+                    push!(s2, c1)
+                end
+            end
         end
     end
     return V, A
@@ -118,7 +165,22 @@ function areas(V::Dict{Vertex, Vector{Vertex}})::Dict{Int, Float64}
 end
 
 #==================================== TESTS ===========================================#
+using ..Triangulation
 
+function randomVertex(d::Int)
+	return Vertex(round(rand(Float64)*10^d)/(10^d), round(rand(Float64)*10^d)/(10^d))
+end
+
+function voronoi_test()
+    D = Delaunay()
+    p = Vertex(-1.0,1.0,1)
+    q = Vertex(1.0,1.0,2)
+    D = insert_point!(p, D)
+    D = insert_point!(q, D)
+    V, A = voronoi(D)
+    println("V: $(V)")
+    println("A: $(A)")
+end
 #===============================================================================#
 
 end
