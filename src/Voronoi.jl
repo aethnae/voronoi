@@ -7,6 +7,7 @@ using GtkObservables.Cairo
 export run_tests
 export GameState, new_game, place_point!, game_over, compute_areas, winner
 export Delaunay, Vertex, insert_point!, voronoi, areas
+export main
 
 run_tests() = include("../test/runtests.jl")
 
