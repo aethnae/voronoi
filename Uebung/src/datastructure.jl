@@ -1,4 +1,10 @@
-using GtkObservables
+
+
+export Point2D,
+  point2d,
+  compute!,
+  cross_product,
+  center_of_area
 
 #=
 ##### Point2D

@@ -1,7 +1,5 @@
 # DCEL data structures for Voronoi diagram representation
 
-module DCEL
-
 import Base.+, Base.-
 
 export Vertex, Edge, Border, HalfEdge, HalfEdges, Triangle, Delaunay
@@ -92,6 +90,4 @@ end
 D::Delaunay - T::Triangle = begin
     D.triangles = delete!(D.triangles, T)
     return D
-end
-
 end

@@ -1,2 +1,5 @@
 ## Voronoi Game 🎨
 Julia implementation of a two-player game, played on a [Voronoi tessellation](https://en.wikipedia.org/wiki/Voronoi_diagram#Mathematics), using [Delaunay triangulation](https://en.wikipedia.org/wiki/Delaunay_triangulation). Part of the class "Computerorientierte Mathematik II" @ TU Berlin (Summer Term 2025).
+
+## Usage
+julia > using Pkg; Pkg.activate("."); using Voronoi; main()
