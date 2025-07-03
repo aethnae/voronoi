@@ -103,7 +103,7 @@ function insert_point_no_flip!(p::Vertex, D::Delaunay)::Tuple{Delaunay,Edge,Edge
 	@assert !isempty(D.triangles) "This should not be empty!"
 
 	abc = find_triangle(p, D)
-	@assert abc != nothing "Point $(p) is not inside any triangle!"
+	@assert abc !== nothing "Point $(p) is not inside any triangle!"
 
 	# Gather old objects
 	ab, bc, ca = abc.edge, abc.edge.next, abc.edge.prev
