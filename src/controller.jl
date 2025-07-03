@@ -2,11 +2,11 @@
 #==================== Game State ====================#
 
 mutable struct GameState
-    t::Int                                 # Number of points per player
-    current_player::Int                    # 1 or 2
-    turns_left::Dict{Int,Int}              # player => turns left
-    delaunay::Delaunay                     # Current Delaunay triangulation
-    player_points::Dict{Int, Vector{Vertex}} # player => list of their points
+    t::Int                                      # Number of points per player
+    current_player::Int                         # 1 or 2
+    turns_left::Dict{Int,Int}                   # player => turns left
+    delaunay::Delaunay                          # Current Delaunay triangulation
+    player_points::Dict{Int, Vector{Vertex}}    # player => list of their points
 end
 
 function new_game(t::Int)
