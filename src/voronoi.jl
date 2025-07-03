@@ -13,5 +13,4 @@ include("triangulation.jl")
 include("polygons.jl")
 include("gui.jl")
 
-
 end # module Voronoi

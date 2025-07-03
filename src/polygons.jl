@@ -19,11 +19,11 @@ end
 
 Gives the Voronoi to a Delauney
 Outputs: a dict V where each center of a Voronoi polygon is mapped to its corners.
-		 a dict A where each corner of a Voronoipolygon is mapped to its connected corners
+         a dict A where each corner of a Voronoi polygon is mapped to its connected corners
 """
 function voronoi(D::Delaunay)
     V = Dict{Vertex, Set{Vertex}}() # the centers of Voronoi-polygons and their edges
-	A = Dict{Vertex, Set{Vertex}}() # adjaceny list which Voronoi edges are connected
+    A = Dict{Vertex, Set{Vertex}}() # adjaceny list which Voronoi edges are connected
 
     # collect all inner points
     pts = [e.origin for T in D.triangles for e in (T.edge, T.edge.next, T.edge.prev) if !(e isa Border)]
@@ -104,7 +104,7 @@ function voronoi(D::Delaunay)
 end 
 
 """
-	sort_vertices_ccw!(verts::Vector{Tuple{Float64,Float64}})
+    sort_vertices_ccw!(verts::Vector{Tuple{Float64,Float64}})
 
 Sorts a list of 2D points in counterclockwise order around their centroid.
 
@@ -123,7 +123,7 @@ function sort_vertices_ccw!(verts::Vector{Tuple{Float64,Float64}})
 end
 
 """
-	polygon_area(verts::Vector{Tuple{Float64,Float64}})
+    polygon_area(verts::Vector{Tuple{Float64,Float64}})
 
 Calculates the area of a Polygon with n corners with shoelace formula
 
@@ -142,7 +142,7 @@ function polygon_area(verts::Vector{Tuple{Float64,Float64}})
 end
 
 """
-	areas(V::Dict{Vertex, Vector{Vertex}})::Dict{Int, Float64}
+    areas(V::Dict{Vertex, Vector{Vertex}})::Dict{Int, Float64}
 
 Calculates the Areas of the players  
 
@@ -150,12 +150,12 @@ Input: Voronoi dict
 Output: Dict with the area of the polygons belonging to indiviual players
 """
 function areas(V::Dict{Vertex, Vector{Vertex}})::Dict{Int, Float64}
-	Areas = Dict{Int, Float64}()
+    Areas = Dict{Int, Float64}()
 
-	# sort the corners for a Voronoi polygon counterclockwise, calculate its area and add it to the players area
-	for center in keys(V)
-		V[center] = sort_vertices_ccw!(V[center])
-		Areas[center.player] = get!(Areas, center.player, 0) + polygon_area(V[center])
-	end
-	return Areas
+    # sort the corners for a Voronoi polygon counterclockwise, calculate its area and add it to the players area
+    for center in keys(V)
+        V[center] = sort_vertices_ccw!(V[center])
+        Areas[center.player] = get!(Areas, center.player, 0) + polygon_area(V[center])
+    end
+    return Areas
 end
