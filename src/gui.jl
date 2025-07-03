@@ -1,8 +1,5 @@
 export main
 
-using GtkObservables.Gtk4
-using Gtk4
-
 """
   main()
 
@@ -39,11 +36,12 @@ function main()
     win = GtkWindow("Voronoi")
     g = GtkGrid()
     c = canvas(UserUnit)
-    frame = GtkFrame(c)
-    g[1:2, 1] = frame
-    g.column_homogeneous = true
-    g.column_spacing = 15
-    push!(win, g)
+    #frame = GtkFrame(c)
+    #g[1:2, 1] = frame
+    #g.column_homogeneous = true
+    #g.column_spacing = 15
+    #push!(win, g)
+    push!(win,c)
 
     state = Observable(new_game(t))
 
@@ -85,11 +83,20 @@ function main()
         redraw(c)
     end
 
+    #on(c.mouse.buttonpress) do btn
+    #    println(btn.position)
+    #end
+
     # --- GTK4 mouse click handling ---
     gesture = GtkGestureClick() # TODO: Ist noch verbuggt, probiert es mal zu zeichnen, dann seht ihr den Error.
     push!(c.widget, gesture)
     signal_connect(gesture, "pressed") do gesture, n_press, x, y
-        if place_point!(state[], x, y)
+        coords = [x,y]
+        gc = getgc(gesture.widget)
+        set_coordinates(gc, BoundingBox(0,1,0,1))
+        device_to_user!(gc, coords)
+
+        if place_point!(state[], coords[1], coords[2])
             notify(state)
         end
         return true
@@ -99,6 +106,6 @@ function main()
         redraw(c)
     end
 
-    show(win)
+    #show(win)
     return win
 end

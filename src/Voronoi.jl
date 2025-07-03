@@ -3,6 +3,7 @@ module Voronoi
 using GtkObservables, Colors
 using GtkObservables.Gtk4
 using GtkObservables.Cairo
+using LinearAlgebra
 
 export run_tests
 export GameState, new_game, place_point!, game_over, compute_areas, winner

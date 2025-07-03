@@ -1,1 +1,1 @@
-julia -e "using Pkg; Pkg.activate(\".\"); using Voronoi; main()"
+julia -i -e "using Pkg; Pkg.activate(\".\"); using Voronoi; main()"
