@@ -23,7 +23,7 @@ end
 
 Gives the Voronoi to a Delauney
 Outputs: a dict V where each center of a Voronoi polygon is mapped to its corners.
-		 a dict A where each corner of a Voronoipolygon is mapped to its connected corners
+		 a dict A where each corner of a Voronoi polygon is mapped to its connected corners
 """
 function voronoi(D::Delaunay)
     V = Dict{Vertex, Set{Vertex}}() # the centers of Voronoi-polygons and their edges
