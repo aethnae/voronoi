@@ -6,7 +6,9 @@ export main
 Prompt for number of turns, then create the main window.
 """
 function main()
-    # --- Prompt dialog for number of turns ---
+    """
+        Prompt dialog for number of turns
+    """
     dialog = GtkDialog("Voronoi: Anzahl Züge pro Spieler", (), 0, nothing)
     content = dialog.child
     entry = GtkEntry()
@@ -32,24 +34,26 @@ function main()
         sleep(0.05)
     end
 
-    # --- Create main window ---
+    """
+        Window and canvas setup
+
+    `canvas(UserUnit)` lets GtkObservables automatically convert pixel position to [0,1] x [0,1].
+    """
     win = GtkWindow("Voronoi")
     g = GtkGrid()
     c = canvas(UserUnit)
     frame = GtkFrame(c)
-    #g[1:2, 1] = frame
-    #g.column_homogeneous = true
-    #g.column_spacing = 15
-    #push!(win, g)
     push!(win,frame)
 
     state = Observable(new_game(t))
 
-    #=
-    Redraw is a Gtk4 inbuilt function which is called whenever the window resizes.
+    """
+        Canvas drawing
+
+    `redraw` is a Gtk4 inbuilt function which is called whenever the window resizes.
     Additionally, GtkObservables allows us to hook additional observables which should
     also trigger a function call.
-    =#
+    """
     redraw = draw(c, state) do canvas, st
         ctx = getgc(canvas)
         set_coordinates(ctx, BoundingBox(0,1,0,1))
@@ -85,7 +89,9 @@ function main()
         end
     end
 
-    # --- GTK4 mouse click handling ---
+    """
+        Mouse click handling
+    """
     on(c.mouse.buttonpress) do btn
         if place_point!(state[], btn.position.x.val, btn.position.y.val)
             notify(state)
