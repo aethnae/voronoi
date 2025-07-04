@@ -219,8 +219,7 @@ function voronoi(D::Delaunay, bbox::Vector{Vertex})
     end
 
     for pt in keys(V)
-        cell = V[pt]
-        cell = sort_vertices_ccw!(unique(cell))
+        V[pt] = sort_vertices_ccw!(unique(V[pt])) # sort the corners of each Voronoi polygon counterclockwise
     end
     return V
 end 
