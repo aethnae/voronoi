@@ -1,6 +1,6 @@
 # DCEL data structures for Voronoi diagram representation
 
-import Base.+, Base.-
+import Base.+, Base.-, Base.:*
 
 export Vertex, Edge, Border, HalfEdge, HalfEdges, Triangle, Delaunay
 
@@ -18,6 +18,10 @@ struct Vertex   # Represents a point in the plane, placed by a player.
 end
 
 Base.show(io::IO, v::Vertex) = print(io, "($(v.x), $(v.y))")
+
+a::Vertex + b::Vertex = Vertex(a.x + b.x, a.y + b.y)
+a::Vertex - b::Vertex = Vertex(a.x - b.x, a.y - b.y)
+k::Float64 * b::Vertex = Vertex(k * b.x, k * b.y)
 
 #========================================================================#
 mutable struct Border <: Edge

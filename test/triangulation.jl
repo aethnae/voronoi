@@ -80,3 +80,36 @@ end
 	end
 	println("Finished $(Tests) full logic tests.")
 end
+
+@testset "Area calculation test" begin
+	D = Delaunay()
+	for _ = 1:Tests
+		p = randomVertex(Digits)
+		D = insert_point!(p, D)
+	end
+
+	# Conversion to graph
+	neighbors = Dict{Vertex, Vector{Vertex}}()
+	for T in D.triangles
+		for e in (T.edge, T.edge.next, T.edge.prev)
+			if e isa Border
+				continue
+			end
+			n = haskey(neighbors, e.origin) ? neighbors[n] : Vector{Vertex}()
+			push!(n, e.next.origin)
+			push!(n, e.prev.origin)
+		end
+	end
+
+	# Conversion to polygons
+	polygons = Dict{Vertex, Vector{Vertex}}()
+	for v in keys(neighbors)
+		corners = Vector{Vertex}()
+		neigh = sort(neighbors[v], by = (p -> atan(p.y, p.x)))
+		m,n = Vector{Vertex}(), Vector{Vertex}()
+
+		for p in neigh
+
+		end
+	end
+end
