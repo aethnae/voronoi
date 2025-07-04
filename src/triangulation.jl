@@ -1,9 +1,6 @@
-module Logic
+export insert_point!, test_low_level_logic, test_high_level_logic
 
-include("dcel.jl")
-using .DCEL, LinearAlgebra
-
-export circumcenter, is_delaunay, is_left, find_triangle, flip!, recursive_flip!, insert_point!, insert_point_no_flip!
+#================================ LOGIC ===============================================#
 
 """
 	is_delaunay(ab::Edge)::Bool
@@ -102,7 +99,7 @@ function insert_point_no_flip!(p::Vertex, D::Delaunay)::Tuple{Delaunay,Edge,Edge
 	@assert !isempty(D.triangles) "This should not be empty!"
 
 	abc = find_triangle(p, D)
-	@assert abc != nothing "Point $(p) is not inside any triangle!"
+	@assert abc !== nothing "Point $(p) is not inside any triangle!"
 
 	# Gather old objects
 	ab, bc, ca = abc.edge, abc.edge.next, abc.edge.prev
@@ -124,19 +121,4 @@ function insert_point!(p::Vertex, D::Delaunay)::Delaunay
 	D = recursive_flip!(bc,D)
 	D = recursive_flip!(ca,D)
 	return D
-end
-
-
-"""
-	circumcenter(T::Triangle)::Vertex
-
-Calculates circumcenter coordinates of a given triangle.
-"""
-function circumcenter(T::Triangle)::Vertex
-	D = 2*(a.x * (b.y-c.y) + b.x * (c.y-a.y) + c.x * (a.y - b.y))
-    X = ((a.x^2 + a.y^2)*(b.y - c.y) + (b.x^2 + b.y^2)*(c.y - a.y) + (c.x^2 + c.y^2)*(a.y - b.y)) / D
-    Y = ((a.x^2 + a.y^2)*(c.x - b.x) + (b.x^2 + b.y^2)*(a.x - c.x) + (c.x^2 + c.y^2)*(b.x - a.x)) / D
-    return Vertex(X,Y)
-end
-
 end

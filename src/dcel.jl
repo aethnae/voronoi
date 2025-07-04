@@ -1,8 +1,6 @@
 # DCEL data structures for Voronoi diagram representation
 
-module DCEL
-
-import Base.+, Base.-
+import Base.+, Base.-, Base.:*
 
 export Vertex, Edge, Border, HalfEdge, HalfEdges, Triangle, Delaunay
 
@@ -13,9 +11,17 @@ abstract type Face end
 struct Vertex   # Represents a point in the plane, placed by a player.
     x::Float64
     y::Float64
+    player::Union{Int, Nothing}
+
+    Vertex(X::Float64, Y::Float64) = new(X,Y,nothing)
+    Vertex(X::Float64, Y::Float64, P::Int) = new(X,Y,P)
 end
 
 Base.show(io::IO, v::Vertex) = print(io, "($(v.x), $(v.y))")
+
+a::Vertex + b::Vertex = Vertex(a.x + b.x, a.y + b.y)
+a::Vertex - b::Vertex = Vertex(a.x - b.x, a.y - b.y)
+k::Float64 * b::Vertex = Vertex(k * b.x, k * b.y)
 
 #========================================================================#
 mutable struct Border <: Edge
@@ -48,7 +54,7 @@ function HalfEdges(a::Vertex,b::Vertex)::Tuple{HalfEdge, HalfEdge}
 end
 
 function Base.show(io::IO, e::HalfEdge)
-    v = e.next != nothing ? e.next.origin : nothing
+    v = e.next !== nothing ? e.next.origin : nothing
     print(io, "[$(e.origin)->$(v)]")
 end
 
@@ -71,7 +77,11 @@ Base.show(io::IO, T::Triangle) = print(io, "Tri{$(T.edge), $(T.edge.next), $(T.e
 mutable struct Delaunay
     triangles::Set{Triangle}  # Set of triangles in the Delaunay triangulation
 
-    Delaunay() = new(Set([Triangle(Border(Vertex(-2,0)), Border(Vertex(3,0)), Border(Vertex(0,3)))]))
+    Delaunay() = new(Set([Triangle(
+        Border(Vertex(-10.0, -10.0)),
+        Border(Vertex(20.0, -10.0)),
+        Border(Vertex(0.5, 20.0))
+    )]))
 end
 
 function Base.show(io::IO, D::Delaunay)
@@ -88,6 +98,4 @@ end
 D::Delaunay - T::Triangle = begin
     D.triangles = delete!(D.triangles, T)
     return D
-end
-
 end
