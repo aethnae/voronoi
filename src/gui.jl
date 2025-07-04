@@ -41,7 +41,7 @@ function main()
     """
     win = GtkWindow("Voronoi")
     g = GtkGrid()
-    c = canvas(UserUnit)
+    c = canvas(UserUnit, 400,400)
     frame = GtkFrame(c)
     push!(win,frame)
 
@@ -60,16 +60,6 @@ function main()
         set_source_rgb(ctx, 1, 1, 1)
         paint(ctx)
 
-        # Draw player points
-        for (player, points) in st.player_points
-            color = player == 1 ? RGB(0.2,0.4,1.0) : RGB(1.0,0.4,0.2)
-            set_source_rgb(ctx, color.r, color.g, color.b)
-            for v in points
-                arc(ctx, v.x, v.y, 8, 0, 2pi)
-                fill(ctx)
-            end
-        end
-
         # Draw Voronoi diagram (if enough points)
         try
             V, _ = voronoi(st.delaunay)
@@ -86,6 +76,16 @@ function main()
                 end
             end
         catch
+        end
+
+        # Draw player points
+        for (player, points) in st.player_points
+            color = player == 1 ? RGB(0.2,0.4,1.0) : RGB(1.0,0.4,0.2)
+            set_source_rgb(ctx, color.r, color.g, color.b)
+            for v in points
+                arc(ctx, v.x, v.y, 0.01, 0, 2pi)
+                fill(ctx)
+            end
         end
     end
 
