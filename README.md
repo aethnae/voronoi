@@ -11,4 +11,4 @@ Then the project can be started with this command:
 ```
 julia> using Pkg; Pkg.activate("."); using Voronoi; main()
 ```
-For Windows scrubs like me, a batch file `win_run.bat`is included.
+For Windows scrubs like me, a batch file `win_run.bat` is included.
