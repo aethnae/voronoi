@@ -73,7 +73,7 @@ end
 """
 	voronoi(D::Delaunay)::Tuple{Dict{Vertex,Vector{Vertex}},Dict{Vertex,Vector{Vertex}}}
 
-Gives the Voronoi to a Delauney
+Gives the Voronoi to a Delaunay
 Outputs: a dict V where each center of a Voronoi polygon is mapped to its corners.
 		 a dict A where each corner of a Voronoipolygon is mapped to its connected corners
 """
