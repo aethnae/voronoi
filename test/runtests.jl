@@ -1,7 +1,7 @@
 using Test, Random
 
-function randomVertex(d::Int)
-	return Vertex(round(rand(Float64)*10^d)/(10^d), round(rand(Float64)*10^d)/(10^d))
+function randomVertex(b::Int)
+	return Vertex(round(rand(Float64)*2^b)/(2^b), round(rand(Float64)*2^b)/(2^b))
 end
 
 include("triangulation.jl")

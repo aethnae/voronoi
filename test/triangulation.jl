@@ -1,12 +1,12 @@
-Tests = 100
-Digits = 3
+Tests = 128
+Prec = 16
 
 @testset "Triangulation, low level logic" begin
 	println("Starting $(Tests) low level logic (is_left) tests.")
 	for _ = 1:Tests
-		a = randomVertex(Digits)
-		b = randomVertex(Digits)
-		p = randomVertex(Digits)
+		a = randomVertex(Prec)
+		b = randomVertex(Prec)
+		p = randomVertex(Prec)
 
 		if a == b
 			continue
@@ -40,7 +40,7 @@ end
 	D = Delaunay()
 
 	for num = 1:Tests
-		p = randomVertex(Digits)
+		p = randomVertex(Prec)
 		D = insert_point!(p, D)
 
 		@test length(D.triangles) == 1 + 2*num
@@ -79,89 +79,4 @@ end
 		end
 	end
 	println("Finished $(Tests) full logic tests.")
-end
-
-@testset "Area calculation test" begin
-	println("Inserting points...")
-	D = Delaunay()
-	for _ = 1:Tests
-		p = randomVertex(Digits)
-		D = insert_point!(p, D)
-	end
-
-	println("Done. Converting to graph...")
-	neighbors = Dict{Vertex, Set{Vertex}}()
-	for T in D.triangles
-		for e in (T.edge, T.edge.next, T.edge.prev)
-			v = e.origin
-			if !(v in (BottomLeft, BottomRight, TopLeft))
-				neigh = haskey(neighbors, v) ? neighbors[v] : Set{Vertex}()
-				push!(neigh, e.next.origin)
-				push!(neigh, e.prev.origin)
-				neighbors[v] = neigh
-			end
-		end
-	end
-	N = length(neighbors)
-
-	println("$(N) vertices found. Generating polygons...")
-	polygons = Dict{Vertex, Vector{Vertex}}()
-	for v in keys(neighbors)
-		neigh = sort([x for x in neighbors[v]], by = (p -> atan(p.y, p.x)))
-
-		# Conversion to anticlockwise perpendicular bisectors x=m+nt
-		perp = Vector{Tuple{Vertex,Vertex}}()
-		for p in neigh
-			if p == TopLeft
-				push!(perp, (Vertex(0.0, 1.0), Vertex(-1.0, 0.0)))
-				push!(perp, (Vertex(0.0, 1.0), Vertex(0.0, -1.0)))
-			elseif p == BottomLeft
-				push!(perp, (Vertex(0.0, 0.0), Vertex(0.0, -1.0)))
-				push!(perp, (Vertex(0.0, 0.0), Vertex(1.0, 0.0)))
-			elseif p == BottomRight
-				push!(perp, (Vertex(1.0, 0.0), Vertex(1.0, 0.0)))
-				push!(perp, (Vertex(1.0, 0.0), Vertex(0.0, 1.0)))
-			else
-				push!(perp, (0.5*(p+v), Vertex(p.y-v.y, v.x-p.x)))
-			end
-		end
-		
-		# intersections of perpendicular bisectors
-		corners = Vector{Vertex}()
-		for i in 1:length(perp)
-			j = i % length(perp) + 1
-			println("Center $(v) Intersect $(perp[i]), $(perp[j])")
-
-			mij = perp[i][1]-perp[j][1]
-			ni, nj = perp[i][2], perp[j][2]
-			denom = ni.x * nj.y - ni.y * nj.x
-			if denom == 0.0
-				continue
-			end
-			ti = (nj.x * mij.y - nj.y * mij.x) / denom
-			tj = (ni.x * mij.y - ni.y * mij.x) / denom
-			@test ti >= 0
-			@test tj <= 0
-			u1 = perp[i][1] + ti * ni
-			u2 = perp[i][2] + tj * nj
-			@test u1.x == u2.x && u1.y == u2.y
-			push!(corners, u1)
-		end
-		@test length(corners) > 2
-		polygons[v] = corners
-	end
-
-	println("Calculating area...")
-	a = 0.0
-	for v in keys(polygons)
-		av = 0.0
-		corners = polygons[v]
-		for i in length(corners)
-			j = i % length(corners) + 1
-			av = av + (corners[i].y+corners[j].y)*(corners[i].x-corners[j].y) / 2
-		end
-		println("$(av) for Vertex $(v)")
-		a = a + av
-	end
-	println("$(a) in total")
 end

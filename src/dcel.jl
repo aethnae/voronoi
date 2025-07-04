@@ -1,6 +1,6 @@
 # DCEL data structures for Voronoi diagram representation
 
-import Base.+, Base.-, Base.:*
+import Base.+, Base.-, Base.:*, Base.round
 
 export Vertex, Edge, Border, HalfEdge, HalfEdges, Triangle, Delaunay
 
@@ -27,6 +27,7 @@ Base.show(io::IO, v::Vertex) = print(io, "($(v.x), $(v.y))")
 a::Vertex + b::Vertex = Vertex(a.x + b.x, a.y + b.y)
 a::Vertex - b::Vertex = Vertex(a.x - b.x, a.y - b.y)
 k::Float64 * b::Vertex = Vertex(k * b.x, k * b.y)
+round(a::Vertex) = Vertex(round(a.x), round(a.y))
 
 #========================================================================#
 mutable struct Border <: Edge
