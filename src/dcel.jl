@@ -73,7 +73,11 @@ Base.show(io::IO, T::Triangle) = print(io, "Tri{$(T.edge), $(T.edge.next), $(T.e
 mutable struct Delaunay
     triangles::Set{Triangle}  # Set of triangles in the Delaunay triangulation
 
-    Delaunay() = new(Set([Triangle(Border(Vertex(-3.0,0.0)), Border(Vertex(3.0,0.0)), Border(Vertex(0.0,3.0)))]))
+    Delaunay() = new(Set([Triangle(
+        Border(Vertex(-10.0, -10.0)),
+        Border(Vertex(20.0, -10.0)),
+        Border(Vertex(0.5, 20.0))
+    )]))
 end
 
 function Base.show(io::IO, D::Delaunay)
