@@ -17,6 +17,11 @@ struct Vertex   # Represents a point in the plane, placed by a player.
     Vertex(X::Float64, Y::Float64, P::Int) = new(X,Y,P)
 end
 
+BottomLeft = Vertex(-10.0, -10.0)
+BottomRight = Vertex(20.0, -10.0)
+TopLeft = Vertex(0.0, 20.0)
+
+
 Base.show(io::IO, v::Vertex) = print(io, "($(v.x), $(v.y))")
 
 a::Vertex + b::Vertex = Vertex(a.x + b.x, a.y + b.y)
@@ -78,9 +83,9 @@ mutable struct Delaunay
     triangles::Set{Triangle}  # Set of triangles in the Delaunay triangulation
 
     Delaunay() = new(Set([Triangle(
-        Border(Vertex(-10.0, -10.0)),
-        Border(Vertex(20.0, -10.0)),
-        Border(Vertex(0.5, 20.0))
+        Border(BottomLeft),
+        Border(BottomRight),
+        Border(TopLeft)
     )]))
 end
 
