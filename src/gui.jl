@@ -39,11 +39,20 @@ function main()
 
     `canvas(UserUnit)` lets GtkObservables automatically convert pixel position to [0,1] x [0,1].
     """
+    # win = GtkWindow("Voronoi")
+    # g = GtkGrid()
+    # c = canvas(UserUnit, 400, 400)
+    # frame = GtkFrame(c)
+    # push!(win,frame)
+
     win = GtkWindow("Voronoi")
     g = GtkGrid()
-    c = canvas(UserUnit, 400,400)
+    c = canvas(UserUnit, 400, 400)
     frame = GtkFrame(c)
-    push!(win,frame)
+    g[1:2, 1] = frame
+    g.column_homogeneous = true
+    g.column_spacing = 15
+    push!(win, g)
 
     state = Observable(new_game(t))
 
@@ -61,17 +70,40 @@ function main()
         paint(ctx)
 
         # Draw Voronoi diagram (if enough points)
+        # try
+        #     V, _ = voronoi(st.delaunay)
+        #     set_source_rgb(ctx, 0, 0, 0)
+        #     for corners in values(V)
+        #         verts = [(v.x, v.y) for v in corners]
+        #         if !isempty(verts)
+        #             move_to(ctx, verts[1]...)
+        #             for v in verts[2:end]
+        #                 line_to(ctx, v...)
+        #             end
+        #             close_path(ctx)
+        #             stroke(ctx)
+        #         end
+        #     end
+        # catch
+        # end
+
         try
             V, _ = voronoi(st.delaunay)
-            set_source_rgb(ctx, 0, 0, 0)
-            for corners in values(V)
+            for (center, corners) in V
                 verts = [(v.x, v.y) for v in corners]
-                if !isempty(verts)
+                if length(verts) > 2
                     move_to(ctx, verts[1]...)
                     for v in verts[2:end]
                         line_to(ctx, v...)
                     end
                     close_path(ctx)
+                    # Fill with player color
+                    player = center.player
+                    fillcolor = player == 1 ? RGB(0.8,0.9,1.0) : RGB(1.0,0.9,0.8)
+                    set_source_rgb(ctx, fillcolor.r, fillcolor.g, fillcolor.b)
+                    fill_preserve(ctx)
+                    # Outline
+                    set_source_rgb(ctx, 0, 0, 0)
                     stroke(ctx)
                 end
             end
@@ -89,14 +121,34 @@ function main()
         end
     end
 
-    """
-        Mouse click handling
-    """
-    on(c.mouse.buttonpress) do btn
-        if place_point!(state[], btn.position.x.val, btn.position.y.val)
+    # """
+    #     Mouse click handling
+    # """
+    # on(c.mouse.buttonpress) do btn
+    #     if place_point!(state[], btn.position.x.val, btn.position.y.val)
+    #         notify(state)
+    #     end
+    # end
+
+    # Mouse click handling
+    gesture = GtkGestureClick()
+    push!(c.widget, gesture)
+    signal_connect(gesture, "pressed") do gesture, n_press, x, y
+        # Convert pixel to UserUnit
+        width, heigth = Gtk4.width(c.widget), Gtk4.height(c.widget)
+        xu = x / width
+        yu = y / heigth
+        if place_point!(state[], xu, yu)
             notify(state)
         end
+        return true
     end
+
+    signal_connect(c.widget, "realize") do widget
+        redraw(c)
+    end
+
+    show(win)
 
     return win
 end
