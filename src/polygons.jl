@@ -17,9 +17,9 @@ end
 
 function filter_internal_triangles(D::Delaunay)::Set{Triangle}
     inner_triangles = Set{Triangle}()
-    S1 = Vertex(-3.0,0.0) # initial triangle
-    S2 = Vertex(3.0,0.0)
-    S3 = Vertex(0.0,3.0)
+    S1 = Vertex(-10.0, -10.0) # initial triangle
+    S2 = Vertex(20.0, -10.0)
+    S3 = Vertex(0.5, 20.0)
     S = [S1, S2, S3]
     for T in D.triangles
         e = T.edge
@@ -73,7 +73,7 @@ end
 """
 	voronoi(D::Delaunay)::Tuple{Dict{Vertex,Vector{Vertex}},Dict{Vertex,Vector{Vertex}}}
 
-Gives the Voronoi to a Delauney
+Gives the Voronoi to a Delaunay
 Outputs: a dict V where each center of a Voronoi polygon is mapped to its corners.
 		 a dict A where each corner of a Voronoipolygon is mapped to its connected corners
 """
@@ -85,9 +85,9 @@ function voronoi(D::Delaunay, bbox::Vector{Vertex})
     ru = bbox[3]
     lu = bbox[4]
 
-    S1 = Vertex(-3.0,0.0) # initial triangle
-    S2 = Vertex(3.0,0.0)
-    S3 = Vertex(0.0,3.0)
+    S1 = Vertex(-10.0, -10.0)
+    S2 = Vertex(20.0, -10.0)
+    S3 = Vertex(0.5, 20.0)
 
     # collect all inner points
     pts = [e.origin for T in D.triangles for e in (T.edge, T.edge.next, T.edge.prev)]
@@ -219,8 +219,7 @@ function voronoi(D::Delaunay, bbox::Vector{Vertex})
     end
 
     for pt in keys(V)
-        cell = V[pt]
-        cell = sort_vertices_ccw!(unique(cell))
+        V[pt] = sort_vertices_ccw!(unique(V[pt])) # sort the corners of each Voronoi polygon counterclockwise
     end
     return V
 end 
