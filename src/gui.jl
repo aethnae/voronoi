@@ -69,37 +69,21 @@ function main()
         set_source_rgb(ctx, 1, 1, 1)
         paint(ctx)
 
-        # Draw Voronoi diagram (if enough points)
-        # try
-        #     V, _ = voronoi(st.delaunay)
-        #     set_source_rgb(ctx, 0, 0, 0)
-        #     for corners in values(V)
-        #         verts = [(v.x, v.y) for v in corners]
-        #         if !isempty(verts)
-        #             move_to(ctx, verts[1]...)
-        #             for v in verts[2:end]
-        #                 line_to(ctx, v...)
-        #             end
-        #             close_path(ctx)
-        #             stroke(ctx)
-        #         end
-        #     end
-        # catch
-        # end
-
         try
-            V, _ = voronoi(st.delaunay)
+            bbox = [Vertex(0.0, 0.0), Vertex(1.0, 0.0), Vertex(1.0, 1.0), Vertex(0.0, 1.0)]
+            V = voronoi(st.delaunay, bbox)
             for (center, corners) in V
                 verts = [(v.x, v.y) for v in corners]
-                if length(verts) > 2
+                if center.player !== nothing &&
+                    0.0 <= center.x <= 1.0 && 0.0 <= center.y <= 1.0 &&
+                    length(verts) > 2
                     move_to(ctx, verts[1]...)
                     for v in verts[2:end]
                         line_to(ctx, v...)
                     end
                     close_path(ctx)
                     # Fill with player color
-                    player = center.player
-                    fillcolor = player == 1 ? RGB(0.8,0.9,1.0) : RGB(1.0,0.9,0.8)
+                    fillcolor = center.player == 1 ? RGB(0.8,0.9,1.0) : RGB(1.0,0.9,0.8)
                     set_source_rgb(ctx, fillcolor.r, fillcolor.g, fillcolor.b)
                     fill_preserve(ctx)
                     # Outline
@@ -121,15 +105,6 @@ function main()
         end
     end
 
-    # """
-    #     Mouse click handling
-    # """
-    # on(c.mouse.buttonpress) do btn
-    #     if place_point!(state[], btn.position.x.val, btn.position.y.val)
-    #         notify(state)
-    #     end
-    # end
-
     # Mouse click handling
     gesture = GtkGestureClick()
     push!(c.widget, gesture)
@@ -149,6 +124,5 @@ function main()
     end
 
     show(win)
-
     return win
 end
