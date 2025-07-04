@@ -17,9 +17,9 @@ end
 
 function filter_internal_triangles(D::Delaunay)::Set{Triangle}
     inner_triangles = Set{Triangle}()
-    S1 = Vertex(-3.0,0.0) # initial triangle
-    S2 = Vertex(3.0,0.0)
-    S3 = Vertex(0.0,3.0)
+    S1 = Vertex(-10.0, -10.0) # initial triangle
+    S2 = Vertex(20.0, -10.0)
+    S3 = Vertex(0.5, 20.0)
     S = [S1, S2, S3]
     for T in D.triangles
         e = T.edge
@@ -85,9 +85,9 @@ function voronoi(D::Delaunay, bbox::Vector{Vertex})
     ru = bbox[3]
     lu = bbox[4]
 
-    S1 = Vertex(-3.0,0.0) # initial triangle
-    S2 = Vertex(3.0,0.0)
-    S3 = Vertex(0.0,3.0)
+    S1 = Vertex(-10.0, -10.0)
+    S2 = Vertex(20.0, -10.0)
+    S3 = Vertex(0.5, 20.0)
 
     # collect all inner points
     pts = [e.origin for T in D.triangles for e in (T.edge, T.edge.next, T.edge.prev)]
