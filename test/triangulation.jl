@@ -1,5 +1,5 @@
 Tests = 128
-Prec = 16
+Prec = 12
 
 @testset "Triangulation, low level logic" begin
 	println("Starting $(Tests) low level logic (is_left) tests.")

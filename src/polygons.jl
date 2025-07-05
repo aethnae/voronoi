@@ -305,3 +305,4 @@ function areas(V::Dict{Vertex, Vector{Vertex}})::Dict{Int, Float64}
 	end
 	return Areas
 end
+
