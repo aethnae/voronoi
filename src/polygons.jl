@@ -402,3 +402,111 @@ function areas(V::Dict{Vertex, Vector{Vertex}})::Dict{Int, Float64}
 	return Areas
 end
 
+#============================================================================================
+============================================================================================#
+function intersect_with(L1::Tuple{Vertex,Vertex}, L2::Tuple{Vertex,Vertex})::Union{Tuple{Vertex,Float64},Nothing}
+    L = [L1[2].x  -L2[2].x;  L1[2].y  -L2[2].y]
+    determinant = det(L)
+    if isapprox(determinant, 0.0; atol=1e-3)
+        return nothing
+    end
+    T = inv(L) * [L2[1].x-L1[1].x; L2[1].y-L1[1].y]
+    if T[1] < 0.0
+        return nothing
+    end
+
+    V = L1[1] + T[1]*L1[2]
+
+    return round(V), T[1]
+end
+
+walls = (Vertex(0.,0.), Vertex(1.,0.)),
+        (Vertex(1.,0.), Vertex(0.,1.)),
+        (Vertex(1.,1.), Vertex(-1.,0.)),
+        (Vertex(0.,1.), Vertex(0.,-1.))
+
+function intersect_wall(v1::Vertex, v2::Vertex)::Vertex
+    intersection = nothing
+    foreach(walls) do wall
+        inter = intersect_with((v1, v2-v1), wall)
+        if inter != nothing && is_inside(inter[1])
+            if intersection isa Nothing || inter[2] < intersection[2]
+                intersection = inter
+            end
+        end
+    end
+    return intersection[1]
+end
+
+function voronoi_2(D::Delaunay)::Dict{Vertex, Vector{Vertex}}
+    Polygons = Dict{Vertex,Vector{Vertex}}()
+
+    foreach(D.triangles) do T
+        C = circumcenter(T)
+        foreach((T.edge.origin, T.edge.next.origin, T.edge.prev.origin)) do v
+            if is_inside(v)
+                vertices = haskey(Polygons, v) ? Polygons[v] : Vector{Vertex}()
+                push!(vertices, C)
+                Polygons[v] = vertices
+            end
+        end
+    end
+    foreach(keys(Polygons)) do v
+        polygon = sort([x for x in Set(Polygons[v])], by = (p -> atan(p.y-v.y, p.x-v.x)))
+        Polygons[v] = polygon
+        #println("$(v) has polygon corners: $(polygon)")
+    end
+    #println("=======================================================================")
+
+    foreach(keys(Polygons)) do v
+        polygon = Polygons[v]
+        newpoly = Vector{Vertex}()
+
+        N = length(polygon)
+        prev_inside = is_inside(polygon[N])
+
+        for i in 1:N
+            next_inside = is_inside(polygon[i])
+            if prev_inside != next_inside
+                wall = intersect_wall(polygon[(i-2+N) % N + 1], polygon[i])
+                push!(newpoly, wall)
+            end
+            if next_inside
+                push!(newpoly, polygon[i])
+            end
+            prev_inside = next_inside
+        end
+
+        #println("$(v) has new corners: $(newpoly)")
+
+        N = length(newpoly)
+        polygon = newpoly
+        newpoly = Vector{Vertex}()
+
+        is_wall(vert) = (vert.x in (0,1)) || (vert.y in (0,1))
+
+        prev_wall = is_wall(polygon[N])
+        for i in 1:N
+            next_wall = is_wall(polygon[i])
+            if prev_wall && next_wall
+                prev = polygon[(i-2+N) % N + 1]
+                if prev.x ≈ 0 && !(prev.y ≈ 0) && !(polygon[i].x ≈ 0)
+                    push!(newpoly, Vertex(0.,0.))
+                elseif prev.y ≈ 0 && !(prev.x ≈ 1) && !(polygon[i].y ≈ 0)
+                    push!(newpoly, Vertex(1.,0.))
+                elseif prev.x ≈ 1 && !(prev.y ≈ 1) && !(polygon[i].x ≈ 1)
+                    push!(newpoly, Vertex(1.,1.))
+                elseif prev.y ≈ 1 && !(prev.x ≈ 0) && !(polygon[i].y ≈ 1)
+                    push!(newpoly, Vertex(0.,1.))
+                end
+            end
+            push!(newpoly, polygon[i])
+            prev_wall = next_wall
+        end
+
+        #println("$(v) has FINAL CORNERS: $(newpoly)")
+        Polygons[v] = newpoly
+    end
+
+    return Polygons
+end
