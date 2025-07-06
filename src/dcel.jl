@@ -17,12 +17,9 @@ struct Vertex   # Represents a point in the plane, placed by a player.
     Vertex(X::Float64, Y::Float64, P::Int) = new(X,Y,P)
 end
 
-#TopLeft = Vertex(0.0, 20.0)
-#BottomLeft = Vertex(-10.0, -10.0)
-#BottomRight = Vertex(20.0, -10.0)
-TopLeft = Vertex(0.0,3.0)
 BottomLeft = Vertex(0.0,-2.0)
 BottomRight = Vertex(3.0,0.0)
+TopLeft = Vertex(0.0,3.0)
 OuterVertices = (TopLeft, BottomLeft, BottomRight)
 is_inside(v::Vertex) = v.x >= 0.0 && v.y >= 0.0 && v.x <= 1.0 && v.y <= 1.0
 

@@ -1,6 +1,4 @@
 
-export voronoi, sort_vertices_ccw!, polygon_area, areas, intersect_ray_bbox, filter_internal_triangles, distance, rotate_right, is_in_box
-
 """
 	circumcenter(T::Triangle)::Vertex
 
@@ -22,10 +20,12 @@ Filter out the triangles that have one corner in common with the initial Triangl
 """
 function filter_internal_triangles(D::Delaunay)::Set{Triangle}
     inner_triangles = Set{Triangle}()
-    S1 = Vertex(-10.0, -10.0) # initial triangle
-    S2 = Vertex(20.0, -10.0)
-    S3 = Vertex(0.0, 20.0)
-    S = [S1, S2, S3]
+
+    #S1 = Vertex(-10.0, -10.0) # initial triangle
+    #S2 = Vertex(20.0, -10.0)
+    #S3 = Vertex(0.0, 20.0)
+    #S = [S1, S2, S3]
+    S = OuterVertices
     for T in D.triangles
         e = T.edge
         e_next = T.edge.next
@@ -123,14 +123,15 @@ function voronoi(D::Delaunay, bbox::Vector{Vertex})::Dict{Vertex, Vector{Vertex}
     ru = bbox[3]
     lu = bbox[4]
 
-    S1 = Vertex(-10.0, -10.0)
-    S2 = Vertex(20.0, -10.0)
-    S3 = Vertex(0.0, 20.0)
+    #S1 = Vertex(-10.0, -10.0)
+    #S2 = Vertex(20.0, -10.0)
+    #S3 = Vertex(0.0, 20.0)
+    S = OuterVertices
 
     # collect all inner points
     pts = [e.origin for T in D.triangles for e in (T.edge, T.edge.next, T.edge.prev)]
     pts = unique(pts)
-    pts = collect(setdiff(pts, [S1, S2, S3])) 
+    pts = collect(setdiff(pts, S)) 
     #println("Inner points: $(pts)")
 
     # only one point -> cell is the whole board
@@ -404,43 +405,51 @@ end
 
 #============================================================================================
 ============================================================================================#
-function intersect_with(L1::Tuple{Vertex,Vertex}, L2::Tuple{Vertex,Vertex})::Union{Tuple{Vertex,Float64},Nothing}
-    L = [L1[2].x  -L2[2].x;  L1[2].y  -L2[2].y]
-    determinant = det(L)
-    if isapprox(determinant, 0.0; atol=1e-3)
-        return nothing
-    end
-    T = inv(L) * [L2[1].x-L1[1].x; L2[1].y-L1[1].y]
-    if T[1] < 0.0
-        return nothing
-    end
-
-    V = L1[1] + T[1]*L1[2]
-
-    return round(V), T[1]
-end
-
 walls = (Vertex(0.,0.), Vertex(1.,0.)),
         (Vertex(1.,0.), Vertex(0.,1.)),
         (Vertex(1.,1.), Vertex(-1.,0.)),
         (Vertex(0.,1.), Vertex(0.,-1.))
 
-function intersect_wall(v1::Vertex, v2::Vertex)::Vertex
+function intersect_wall_between(v1::Vertex, v2::Vertex)::Union{Vertex,Nothing}
     intersection = nothing
     foreach(walls) do wall
-        inter = intersect_with((v1, v2-v1), wall)
-        if inter != nothing && is_inside(inter[1])
-            if intersection isa Nothing || inter[2] < intersection[2]
-                intersection = inter
-            end
+        # solve v1 + (v2-v1)t = wall
+        Mat = [v2.x-v1.x   -wall[2].x;
+               v2.y-v1.y   -wall[2].y]
+        d = det(Mat)
+
+        # check if points are not parallel to wall
+        if isapprox(d, 0.0; atol=1e-3)
+            return
+        end
+
+        # check if intersection is between the two points
+        T = inv(Mat) * [wall[1].x-v1.x;   wall[1].y-v1.y]
+        if T[1] <= 0.0 || T[1] >= 1.0
+            return
+        end
+
+        i = round(v1 + T[1]*(v2-v1))
+        if is_inside(i) && (intersection isa Nothing || T[1] < intersection[2])
+            intersection = (i, T[1])
+        end
+    end 
+    return intersection isa Nothing ? nothing : intersection[1]
+end
+
+function is_in_polygon(V::Vertex, P::Vector{Vertex})::Bool
+    for i in 1:length(P)
+        if !is_left(V, P[i], P[i % length(P) + 1])
+            return false
         end
     end
-    return intersection[1]
+    return true
 end
 
 function voronoi_2(D::Delaunay)::Dict{Vertex, Vector{Vertex}}
     Polygons = Dict{Vertex,Vector{Vertex}}()
 
+    # Collect unbounded polygon vertices.
     foreach(D.triangles) do T
         C = circumcenter(T)
         foreach((T.edge.origin, T.edge.next.origin, T.edge.prev.origin)) do v
@@ -451,62 +460,53 @@ function voronoi_2(D::Delaunay)::Dict{Vertex, Vector{Vertex}}
             end
         end
     end
+
+    # Sort polygon vertices anticlockwise.
     foreach(keys(Polygons)) do v
         polygon = sort([x for x in Set(Polygons[v])], by = (p -> atan(p.y-v.y, p.x-v.x)))
         Polygons[v] = polygon
-        #println("$(v) has polygon corners: $(polygon)")
     end
-    #println("=======================================================================")
 
+    # Calculate bounded polygon vertices.
     foreach(keys(Polygons)) do v
         polygon = Polygons[v]
         newpoly = Vector{Vertex}()
-
         N = length(polygon)
-        prev_inside = is_inside(polygon[N])
 
+        # Discard outside vertices and add up to two wall intersections from consecutive vertices.
         for i in 1:N
-            next_inside = is_inside(polygon[i])
-            if prev_inside != next_inside
-                wall = intersect_wall(polygon[(i-2+N) % N + 1], polygon[i])
+            wall = intersect_wall_between(polygon[(i-2+N) % N + 1], polygon[i])
+            if wall != nothing
                 push!(newpoly, wall)
-            end
-            if next_inside
-                push!(newpoly, polygon[i])
-            end
-            prev_inside = next_inside
-        end
-
-        #println("$(v) has new corners: $(newpoly)")
-
-        N = length(newpoly)
-        polygon = newpoly
-        newpoly = Vector{Vertex}()
-
-        is_wall(vert) = (vert.x in (0,1)) || (vert.y in (0,1))
-
-        prev_wall = is_wall(polygon[N])
-        for i in 1:N
-            next_wall = is_wall(polygon[i])
-            if prev_wall && next_wall
-                prev = polygon[(i-2+N) % N + 1]
-                if prev.x ≈ 0 && !(prev.y ≈ 0) && !(polygon[i].x ≈ 0)
-                    push!(newpoly, Vertex(0.,0.))
-                elseif prev.y ≈ 0 && !(prev.x ≈ 1) && !(polygon[i].y ≈ 0)
-                    push!(newpoly, Vertex(1.,0.))
-                elseif prev.x ≈ 1 && !(prev.y ≈ 1) && !(polygon[i].x ≈ 1)
-                    push!(newpoly, Vertex(1.,1.))
-                elseif prev.y ≈ 1 && !(prev.x ≈ 0) && !(polygon[i].y ≈ 1)
-                    push!(newpoly, Vertex(0.,1.))
+                wall = intersect_wall_between(wall, polygon[i])
+                if wall != nothing
+                    push!(newpoly, wall)
                 end
             end
-            push!(newpoly, polygon[i])
-            prev_wall = next_wall
+            if is_inside(polygon[i])
+                push!(newpoly, polygon[i])
+            end
         end
 
-        #println("$(v) has FINAL CORNERS: $(newpoly)")
-        Polygons[v] = newpoly
+        # Add all bounding box corners inside the original polygon.
+        foreach((Vertex(0.,0.),Vertex(0.,1.),Vertex(1.,0.),Vertex(1.,1.))) do corner
+            if is_in_polygon(corner, polygon)
+                push!(newpoly, corner)
+            end
+        end
+
+        # Sort polygon vertices anticlockwise.
+        Polygons[v] = sort(newpoly, by = (p -> atan(p.y-v.y, p.x-v.x)))
     end
 
     return Polygons
+end
+
+function areas_2(V::Dict{Vertex, Vector{Vertex}})::Dict{Int, Float64}
+    Areas = Dict{Int, Float64}()
+    foreach(keys(V)) do v
+        p = v.player isa Nothing ? 0 : v.player
+        Areas[p] = (haskey(Areas, p) ? Areas[p] : 0.) + polygon_area(V[v])
+    end
+    return Areas
 end

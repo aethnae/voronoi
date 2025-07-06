@@ -1,6 +1,3 @@
-export insert_point!, test_low_level_logic, test_high_level_logic
-
-#================================ LOGIC ===============================================#
 
 """
 	is_delaunay(ab::Edge)::Bool
