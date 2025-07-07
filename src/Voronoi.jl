@@ -7,12 +7,10 @@ using LinearAlgebra
 
 export GameState, new_game, place_point!, game_over, compute_areas, winner
 export Delaunay, Vertex			# dcel.jl
-export is_left, insert_point!	# triangulation.jl
+export insert_point!			# triangulation.jl
 export voronoi, areas 			# polygons.jl
 export main						# gui.jl
 export run_tests				# runtests.jl
-
-
 
 run_tests() = include("test/runtests.jl")
 

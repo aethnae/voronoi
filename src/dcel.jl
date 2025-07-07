@@ -1,6 +1,6 @@
 # DCEL data structures for Voronoi diagram representation
 
-import Base.+, Base.-, Base.:*
+import Base.+, Base.-, Base.:*, Base.==, Base.round
 
 export Vertex, Edge, Border, HalfEdge, HalfEdges, Triangle, Delaunay
 
@@ -17,11 +17,20 @@ struct Vertex   # Represents a point in the plane, placed by a player.
     Vertex(X::Float64, Y::Float64, P::Int) = new(X,Y,P)
 end
 
+BottomLeft = Vertex(0.0,-2.0)
+BottomRight = Vertex(3.0,0.0)
+TopLeft = Vertex(0.0,3.0)
+OuterVertices = (TopLeft, BottomLeft, BottomRight)
+is_inside(v::Vertex) = v.x >= 0.0 && v.y >= 0.0 && v.x <= 1.0 && v.y <= 1.0
+
+
 Base.show(io::IO, v::Vertex) = print(io, "($(v.x), $(v.y))")
 
 a::Vertex + b::Vertex = Vertex(a.x + b.x, a.y + b.y)
 a::Vertex - b::Vertex = Vertex(a.x - b.x, a.y - b.y)
+a::Vertex * b::Vertex = a.x*b.x + a.y*b.y
 k::Float64 * b::Vertex = Vertex(k * b.x, k * b.y)
+round(a::Vertex;digits=10,base=2) = Vertex(round(a.x,digits=digits,base=base), round(a.y,digits=digits,base=base),a.player)
 
 #========================================================================#
 mutable struct Border <: Edge
@@ -58,6 +67,8 @@ function Base.show(io::IO, e::HalfEdge)
     print(io, "[$(e.origin)->$(v)]")
 end
 
+e1::Edge == e2::Edge = e1.origin == e2.origin && e1.next.origin == e2.next.origin
+
 #========================================================================#
 mutable struct Triangle <: Face
     edge::Union{Edge,Nothing}       # One of the edges of the face, can be a half-edge
@@ -71,6 +82,8 @@ mutable struct Triangle <: Face
     end
 end
 
+T1::Triangle == T2::Triangle = T1.edge in (T2.edge, T2.edge.next, T2.edge.prev)
+
 Base.show(io::IO, T::Triangle) = print(io, "Tri{$(T.edge), $(T.edge.next), $(T.edge.prev)}")
 
 #========================================================================#
@@ -78,9 +91,9 @@ mutable struct Delaunay
     triangles::Set{Triangle}  # Set of triangles in the Delaunay triangulation
 
     Delaunay() = new(Set([Triangle(
-        Border(Vertex(-10.0, -10.0)),
-        Border(Vertex(20.0, -10.0)),
-        Border(Vertex(0.5, 20.0))
+        Border(TopLeft),
+        Border(BottomLeft),
+        Border(BottomRight)
     )]))
 end
 

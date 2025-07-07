@@ -109,12 +109,29 @@ function main()
     gesture = GtkGestureClick()
     push!(c.widget, gesture)
     signal_connect(gesture, "pressed") do gesture, n_press, x, y
-        # Convert pixel to UserUnit
-        width, heigth = Gtk4.width(c.widget), Gtk4.height(c.widget)
+        width, height = Gtk4.width(c.widget), Gtk4.height(c.widget)
         xu = x / width
-        yu = y / heigth
+        yu = y / height
         if place_point!(state[], xu, yu)
             notify(state)
+            if game_over(state[])
+                win_player = winner(state[])
+                areas = compute_areas(state[])
+                total = sum(values(areas))
+                percent1 = haskey(areas, 1) ? round(100 * areas[1] / total; digits=1) : 0.0
+                percent2 = haskey(areas, 2) ? round(100 * areas[2] / total; digits=1) : 0.0
+                msg = win_player === nothing ?
+                    "Unentschieden!\nSpieler 1: $percent1%\nSpieler 2: $percent2%" :
+                    "Spieler $win_player gewinnt!\nSpieler 1: $percent1%\nSpieler 2: $percent2%"
+                dialog = GtkDialog("Spiel beendet", (), 0, nothing)
+                push!(dialog.child, GtkLabel(msg))
+                # ok_btn = GtkButton("OK")
+                # push!(dialog.child, ok_btn)
+                # signal_connect(ok_btn, "clicked") do _
+                #     destroy(dialog)
+                # end
+                show(dialog)
+            end
         end
         return true
     end

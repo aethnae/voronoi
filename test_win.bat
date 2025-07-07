@@ -1,0 +1,1 @@
+julia -i -e "using Pkg; Pkg.activate(\".\"); using Voronoi; run_tests()"

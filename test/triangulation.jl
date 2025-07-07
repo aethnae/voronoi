@@ -1,12 +1,9 @@
-Tests = 100
-Digits = 3
-
 @testset "Triangulation, low level logic" begin
 	println("Starting $(Tests) low level logic (is_left) tests.")
 	for _ = 1:Tests
-		a = randomVertex(Digits)
-		b = randomVertex(Digits)
-		p = randomVertex(Digits)
+		a = randomVertex()
+		b = randomVertex()
+		p = randomVertex()
 
 		if a == b
 			continue
@@ -40,7 +37,7 @@ end
 	D = Delaunay()
 
 	for num = 1:Tests
-		p = randomVertex(Digits)
+		p = randomVertex()
 		D = insert_point!(p, D)
 
 		@test length(D.triangles) == 1 + 2*num
@@ -79,37 +76,4 @@ end
 		end
 	end
 	println("Finished $(Tests) full logic tests.")
-end
-
-@testset "Area calculation test" begin
-	D = Delaunay()
-	for _ = 1:Tests
-		p = randomVertex(Digits)
-		D = insert_point!(p, D)
-	end
-
-	# Conversion to graph
-	neighbors = Dict{Vertex, Vector{Vertex}}()
-	for T in D.triangles
-		for e in (T.edge, T.edge.next, T.edge.prev)
-			if e isa Border
-				continue
-			end
-			n = haskey(neighbors, e.origin) ? neighbors[n] : Vector{Vertex}()
-			push!(n, e.next.origin)
-			push!(n, e.prev.origin)
-		end
-	end
-
-	# Conversion to polygons
-	polygons = Dict{Vertex, Vector{Vertex}}()
-	for v in keys(neighbors)
-		corners = Vector{Vertex}()
-		neigh = sort(neighbors[v], by = (p -> atan(p.y, p.x)))
-		m,n = Vector{Vertex}(), Vector{Vertex}()
-
-		for p in neigh
-
-		end
-	end
 end
