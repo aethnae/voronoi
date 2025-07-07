@@ -30,7 +30,7 @@ a::Vertex + b::Vertex = Vertex(a.x + b.x, a.y + b.y)
 a::Vertex - b::Vertex = Vertex(a.x - b.x, a.y - b.y)
 a::Vertex * b::Vertex = a.x*b.x + a.y*b.y
 k::Float64 * b::Vertex = Vertex(k * b.x, k * b.y)
-round(a::Vertex;digits=10,base=2) = Vertex(round(a.x,digits=digits,base=base), round(a.y,digits=digits,base=base))
+round(a::Vertex;digits=10,base=2) = Vertex(round(a.x,digits=digits,base=base), round(a.y,digits=digits,base=base),a.player)
 
 #========================================================================#
 mutable struct Border <: Edge

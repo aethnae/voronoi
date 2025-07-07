@@ -19,9 +19,9 @@ Filter out the triangles that have one corner in common with the initial Triangl
 """
 function filter_internal_triangles(D::Delaunay)::Set{Triangle}
     inner_triangles = Set{Triangle}()
-    S1 = Vertex(-10.0, -10.0) # initial triangle
-    S2 = Vertex(20.0, -10.0)
-    S3 = Vertex(0.0, 20.0)
+    S1 = BottomLeft # initial triangle
+    S2 = BottomRight
+    S3 = TopLeft
     S = [S1, S2, S3]
     for T in D.triangles
         e = T.edge
@@ -185,9 +185,9 @@ function voronoi(D::Delaunay, bbox::Vector{Vertex})::Dict{Vertex, Vector{Vertex}
     ru = bbox[3]
     lu = bbox[4]
 
-    S1 = Vertex(-10.0, -10.0)
-    S2 = Vertex(20.0, -10.0)
-    S3 = Vertex(0.0, 20.0)
+    S1 = BottomLeft
+    S2 = BottomRight
+    S3 = TopLeft
 
     # collect all inner points
     pts = [e.origin for T in D.triangles for e in (T.edge, T.edge.next, T.edge.prev)]
@@ -343,6 +343,7 @@ function voronoi(D::Delaunay, bbox::Vector{Vertex})::Dict{Vertex, Vector{Vertex}
     println("V after connected centers: $(V)")=#
 
     for T in inner_triangles
+        #println("$(T)")
         c1 = centers[T] 
         for e in (T.edge, T.edge.next, T.edge.prev)
             he = e::HalfEdge
@@ -460,7 +461,8 @@ function areas(V::Dict{Vertex, Vector{Vertex}})::Dict{Int, Float64}
 	Areas = Dict{Int, Float64}()
 	# calculate its area and add it to the players area
 	for center in keys(V)
-		Areas[center.player] = get!(Areas, center.player, 0) + polygon_area(V[center])
+        #println("player to $(center): $(center.player)")
+		Areas[center.player] = get!(Areas, center.player, 0.) + polygon_area(V[center])
 	end
 	return Areas
 end
