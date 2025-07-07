@@ -541,10 +541,10 @@ function voronoi_2(D::Delaunay)::Dict{Vertex, Vector{Vertex}}
         # Discard outside vertices and add up to two wall intersections from consecutive vertices.
         for i in 1:N
             wall = intersect_wall_between(polygon[(i-2+N) % N + 1], polygon[i])
-            if wall != nothing
+            if wall !== nothing
                 push!(newpoly, wall)
                 wall = intersect_wall_between(wall, polygon[i])
-                if wall != nothing
+                if wall !== nothing
                     push!(newpoly, wall)
                 end
             end
