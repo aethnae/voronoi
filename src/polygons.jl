@@ -1,4 +1,3 @@
-
 """
 	circumcenter(T::Triangle)::Vertex
 
@@ -20,12 +19,10 @@ Filter out the triangles that have one corner in common with the initial Triangl
 """
 function filter_internal_triangles(D::Delaunay)::Set{Triangle}
     inner_triangles = Set{Triangle}()
-
-    #S1 = Vertex(-10.0, -10.0) # initial triangle
-    #S2 = Vertex(20.0, -10.0)
-    #S3 = Vertex(0.0, 20.0)
-    #S = [S1, S2, S3]
-    S = OuterVertices
+    S1 = Vertex(-10.0, -10.0) # initial triangle
+    S2 = Vertex(20.0, -10.0)
+    S3 = Vertex(0.0, 20.0)
+    S = [S1, S2, S3]
     for T in D.triangles
         e = T.edge
         e_next = T.edge.next
@@ -42,31 +39,58 @@ end
 
 Calculates the intersection of a ray starting in bounding box(bbox)in direction of dir with the edges of the box  
 """
-function intersect_ray_bbox(origin::Vertex, dir::Tuple{Float64,Float64}, bbox::Vector{Vertex})
+function intersect_ray_bbox(origin::Vertex, dir::Tuple{Float64,Float64}, bbox::Vector{Vertex})::Union{Vertex, Nothing}
+    ox, oy = origin.x, origin.y
+    dx, dy = dir
+
     xs = [p.x for p in bbox]
     ys = [p.y for p in bbox]
-    xmin = minimum(xs)
-    xmax = maximum(xs)
-    ymin = minimum(ys)
-    ymax = maximum(ys)
+    xmin, xmax = minimum(xs), maximum(xs)
+    ymin, ymax = minimum(ys), maximum(ys)
 
-    ox, oy = origin.x, origin.y
-    #println("ox: $(ox), oy: $(oy)")
-    dx, dy = dir
     ts = Float64[]
-    # calculate t for every edge of bbox, where ox+dx*t = x_edge oder oy+dy*t = y_edge
+
+    # Nur t-Werte sammeln, bei denen der Strahl die Box schneiden KANN
     if dx != 0
-        push!(ts, (xmin - ox)/dx)
-        push!(ts, (xmax - ox)/dx)
+        tx1 = (xmin - ox) / dx
+        tx2 = (xmax - ox) / dx
+        if tx1 > 0
+            y_at_tx1 = oy + dy * tx1
+            if ymin ≤ y_at_tx1 ≤ ymax
+                push!(ts, tx1)
+            end
+        end
+        if tx2 > 0
+            y_at_tx2 = oy + dy * tx2
+            if ymin ≤ y_at_tx2 ≤ ymax
+                push!(ts, tx2)
+            end
+        end
     end
+
     if dy != 0
-        push!(ts, (ymin - oy)/dy)
-        push!(ts, (ymax - oy)/dy)
+        ty1 = (ymin - oy) / dy
+        ty2 = (ymax - oy) / dy
+        if ty1 > 0
+            x_at_ty1 = ox + dx * ty1
+            if xmin ≤ x_at_ty1 ≤ xmax
+                push!(ts, ty1)
+            end
+        end
+        if ty2 > 0
+            x_at_ty2 = ox + dx * ty2
+            if xmin ≤ x_at_ty2 ≤ xmax
+                push!(ts, ty2)
+            end
+        end
     end
-    # only positive t
-    ts = filter(t -> t > 0, ts)
+
+    if isempty(ts)
+        return nothing  # Kein gültiger Schnittpunkt
+    end
+
     tmin = minimum(ts)
-    return Vertex(ox + dx*tmin, oy + dy*tmin)
+    return Vertex(ox + dx * tmin, oy + dy * tmin)
 end
 
 """
@@ -108,6 +132,43 @@ function distance(a::Vertex, b::Vertex)::Float64
 end
 
 """
+    in_triangle(p::Vertex, T::Triangle)::Bool
+
+checks if the point p is a corner of the triangle T
+"""
+function in_triangle(p::Vertex, T::Triangle)::Bool
+    return p==T.edge.origin || p==T.edge.next.origin || p==T.edge.prev.origin
+end
+
+"""
+    get_points(T::Triangle)::Vector{Vertex}
+
+returns the corners of a triangle in a vetctor
+"""
+function get_points(T::Triangle)::Vector{Vertex}
+    a = T.edge.origin
+    b = T.edge.next.origin
+    c = T.edge.prev.origin
+    return [a, b, c]
+end
+
+"""
+    get_common_points(T1::Triangle, T2::Triangle)::Union{Vector{Vertex},Nothing}
+
+calculates the common corners of two triangles. Returns nothing if there are none
+"""
+function get_common_points(T1::Triangle, T2::Triangle)::Union{Vector{Vertex},Nothing}
+    points1 = get_points(T1)
+    points2 = get_points(T2)
+    common_points = [p for p in points1 if p in points2]
+    if isempty(common_points)
+        return nothing
+    else
+        return common_points
+    end
+end
+
+"""
 	voronoi(D::Delaunay)::Tuple{Dict{Vertex,Vector{Vertex}},Dict{Vertex,Vector{Vertex}}}
 
 Gives the Voronoi to a Delaunay
@@ -117,27 +178,27 @@ Outputs: a dict V where each center of a Voronoi polygon is mapped to its corner
 function voronoi(D::Delaunay, bbox::Vector{Vertex})::Dict{Vertex, Vector{Vertex}}
     V = Dict{Vertex, Vector{Vertex}}() # the centers of Voronoi-polygons and their edges
 	inner_triangles = Set{Triangle}()
+    centers = Dict{Triangle,Vertex}()
 
     ld = bbox[1]
     rd = bbox[2]
     ru = bbox[3]
     lu = bbox[4]
 
-    #S1 = Vertex(-10.0, -10.0)
-    #S2 = Vertex(20.0, -10.0)
-    #S3 = Vertex(0.0, 20.0)
-    S = OuterVertices
+    S1 = Vertex(-10.0, -10.0)
+    S2 = Vertex(20.0, -10.0)
+    S3 = Vertex(0.0, 20.0)
 
     # collect all inner points
     pts = [e.origin for T in D.triangles for e in (T.edge, T.edge.next, T.edge.prev)]
     pts = unique(pts)
-    pts = collect(setdiff(pts, S)) 
+    pts = collect(setdiff(pts, [S1, S2, S3])) 
     #println("Inner points: $(pts)")
 
     # only one point -> cell is the whole board
     if length(pts) == 1
         V = Dict(pts[1] => [ld, rd, ru, lu]) 
-        println("V: $(V)")
+        #println("V: $(V)")
         return V
     end 
 
@@ -175,71 +236,158 @@ function voronoi(D::Delaunay, bbox::Vector{Vertex})::Dict{Vertex, Vector{Vertex}
         cellq = sort_vertices_ccw!(unique(cellq))
 
         V = Dict(p => cellp, q => cellq)
-        println("V: $(V)")
+        #println("V: $(V)")
         return V
     end
 
-    # for 3 points construct the inner triangle by hand
-    if length(pts) == 3
-        pts = sort_vertices_ccw!(pts)
-        a, b ,c = pts[1], pts[2], pts[3]
-        ab, ba = HalfEdges(a,b)
-        bc, cb = HalfEdges(b,c)
-        ca, ac = HalfEdges(c,a)
-        Tri = Triangle(ab, bc, ca)
-        push!(inner_triangles, Tri)
-    else
-        inner_triangles = filter_internal_triangles(D) # only triangles without border edge
-    end
-
-    # get the centers of every triangle 
-    centers = Dict{Triangle,Vertex}()
+    
+    inner_triangles = filter_internal_triangles(D) # only triangles without border edge
+    # get the centers of every triangles
     #println("All triangles: $(D.triangles)")
     #println("Inner triangles: $(inner_triangles)")
-    for T in inner_triangles
+    for T in D.triangles
         centers[T] = circumcenter(T)
     end
     #println("triangle centers: $(centers)")
 
-    # inserects of rays to the board corners
-    intersects = Vector{Vertex}()
+    # find the triangles that share an edge
+    connected_Tri = Dict{Triangle,Vector{Triangle}}()
+    for T in D.triangles
+        for e in (T.edge, T.edge.next, T.edge.prev)
+            he = e
+            #println("Current edge: $(e) in $(T)")
+            if !(he isa Border) && he.twin !== nothing && he.twin.face in D.triangles 
+                T2 = he.twin.face
+                k = get!(connected_Tri, T, Vector{Triangle}()); push!(k, T2)
+            end
+        end
+    end
+
+    #=
+    for p in inner_triangles
+        println("Center to $(p): $(centers[p])")
+    end =#
+
+    
+    # for 3 points add edge to cells
+    if length(inner_triangles)==1 
+        for T in inner_triangles
+            c = centers[T]
+            if is_in_box(c, bbox) 
+                for p in (T.edge.origin, T.edge.next.origin, T.edge.prev.origin)
+                    # in V: p is cell center with edge c
+                    s = get!(V, p, Vector{Vertex}())
+                    push!(s, c)
+                end
+            end 
+        end     
+    end
+
+    # inserects of connecting lines between centers
+    for T in D.triangles
+        c1 = centers[T]
+        for T2 in connected_Tri[T]
+            c2 = centers[T2]
+
+            # case: c1 out and c2 in
+            if !is_in_box(c1,bbox) && is_in_box(c2,bbox)
+                dir = (c1.x-c2.x, c1.y-c2.y)
+                far = intersect_ray_bbox(c2, dir, bbox)
+                common_points = get_common_points(T, T2)
+                for p in common_points
+                    if p in pts
+                        push!(get!(V, p, Vector{Vertex}()), far)
+                    end
+                end
+            elseif is_in_box(c1,bbox) && !is_in_box(c2,bbox) # case: c2 out and c1 in
+                dir = (c2.x-c1.x, c2.y-c1.y)
+                far = intersect_ray_bbox(c1, dir, bbox)
+                common_points = get_common_points(T, T2)
+                for p in common_points
+                    if p in pts
+                        push!(get!(V, p, Vector{Vertex}()), far)
+                    end
+                end
+            elseif !is_in_box(c1,bbox) && !is_in_box(c2,bbox) # case: both out
+                dir1 = (c2.x-c1.x, c2.y-c1.y)
+                dir2 = (-dir1[1],-dir1[2])
+                far1 = intersect_ray_bbox(c1, dir1, bbox)
+                far2 = intersect_ray_bbox(c2, dir2, bbox)
+                common_points = get_common_points(T, T2)
+                for p in common_points
+                    if p in pts && far1 !== nothing
+                        push!(get!(V, p, Vector{Vertex}()), far1)
+                    end
+                    if p in pts && far2 !== nothing
+                        push!(get!(V, p, Vector{Vertex}()), far2)
+                    end
+                end
+            else # both are in
+                points1 = get_points(T)
+                points2 = get_points(T2)
+                all_points = [points1; points2]
+                for p in unique(all_points)
+                    if p in pts && in_triangle(p,T)
+                        push!(get!(V, p, Vector{Vertex}()), c1)
+                    elseif p in pts && in_triangle(p,T2)     
+                        push!(get!(V, p, Vector{Vertex}()), c2)
+                    end
+                end
+            end
+        end
+    end
+
+    #=for pt in keys(V)
+        V[pt] = sort_vertices_ccw!(unique(V[pt])) # sort the corners of each Voronoi polygon counterclockwise
+    end
+    println("V after connected centers: $(V)")=#
+
     for T in inner_triangles
-        for e in (T.edge,T.edge.next,T.edge.prev)
+        c1 = centers[T] 
+        for e in (T.edge, T.edge.next, T.edge.prev)
             he = e::HalfEdge
-            # twin face not internal or not existent
-            if !(he.twin.face in inner_triangles) || he.twin === nothing 
-                c1 = centers[T]
+            #twin face not internal 
+            if !(he.twin.face in inner_triangles) #|| he.twin === nothing
                 dir = rotate_right(he) # direction to the board borders
                 dir_ = (-dir[1],-dir[2])
                 #println("normal direction to $(he): $(dir)")
                 if is_in_box(c1, bbox) 
                     far = intersect_ray_bbox(c1, dir, bbox)
                     #println("intersect to edge $(he): $(far)")
-                    push!(intersects, far)
-                else # lines perpendiculat to edges left to c1 have two intersects with borders
+                    push!(get!(V, he.origin, Vector{Vertex}()), far)
+                    push!(get!(V, he.next.origin, Vector{Vertex}()), far)
+                else # lines perpendicular to edges left to c1 have two intersects with borders
                     if is_left(c1, he.origin, he.next.origin)
                         mid_he = Vertex((he.origin.x + he.next.origin.x)/2, (he.origin.y + he.next.origin.y)/2)
                         far1 = intersect_ray_bbox(mid_he, dir, bbox)
                         far2 = intersect_ray_bbox(mid_he, dir_, bbox)
                         #println("intersects to edge $(he): $(far1) and $(far2)")
-                        push!(intersects, far1)
-                        push!(intersects, far2)
+                        if  far1 !== nothing
+                            push!(get!(V, he.origin, Vector{Vertex}()), far1)
+                            push!(get!(V, he.next.origin, Vector{Vertex}()), far1)
+                        end
+                        if far2 !== nothing
+                            push!(get!(V, he.origin, Vector{Vertex}()), far2)
+                            push!(get!(V, he.next.origin, Vector{Vertex}()), far2)
+                        end
                     end
                     #println("center NOT in box: Intersect for $(he) is $(far)")
                 end
                 #println("intersect to direction $(dir): $(far)")
-
             end
         end
     end
+
+    #=for pt in keys(V)
+        V[pt] = sort_vertices_ccw!(unique(V[pt])) # sort the corners of each Voronoi polygon counterclockwise
+    end
+    println("V after intersects Inner Tri: $(V)") =#
 
     # border points to cell centers
     # board corners 
     for corner in bbox
         min_point, min_dist = pts[1], 2*maximum([c.x for c in bbox]) #bigger than max dist inside board
         for pt in pts
-            #println("Min-dist: $(min_dist)")
-            #println("Corner points dist: $(distance(corner, pt))")
             if distance(corner, pt) < min_dist
                 min_point = pt
                 min_dist = distance(corner, pt)
@@ -248,97 +396,11 @@ function voronoi(D::Delaunay, bbox::Vector{Vertex})::Dict{Vertex, Vector{Vertex}
         #println("closest fpoint to $(corner): $(min_point)")
         s = get!(V, min_point, Vector{Vertex}()); push!(s,corner) # corner belongs to the inner point its closest to
     end
-    #println("V after board corners: $(V)")
-
-    # intersects of circumcenter connections with bbox if at least one center is outside
-    for T in inner_triangles
-        c1 = centers[T]
-        for e in (T.edge, T.edge.next, T.edge.prev)
-            he = e::HalfEdge
-            if length(inner_triangles) > 1 && he.twin !== nothing && he.twin.face in inner_triangles
-                T2 = he.twin.face
-                c2 = centers[T2]
-
-                # case: c1 out and c2 in
-                if !is_in_box(c1,bbox) && is_in_box(c2,bbox)
-                    dir = (c2.x-c1.x, c2.y-c1.y)
-                    far = intersect_ray_bbox(c2, dir, bbox)
-                    push!(intersects, far)
-                end
-                # case: c1 in and c2 out:
-                if is_in_box(c1,bbox) && !is_in_box(c2,bbox)
-                    dir = (c1.x-c2.x, c1.y-c2.y)
-                    far = intersect_ray_bbox(c1, dir, bbox)
-                    push!(intersects, far)
-                end
-                #case: both are out
-                if !is_in_box(c1,bbox) && !is_in_box(c2,bbox)
-                    dir1 = (c1.x-c2.x, c1.y-c2.y)
-                    dir2 = (-dir1[1],-dir1[2])
-                    far1 = intersect_ray_bbox(c1, dir1, bbox)
-                    far2 = intersect_ray_bbox(c2, dir2, bbox)
-                    push!(intersects, far1)
-                    push!(intersects, far2)
-                end 
-            end
-        end
-    end
-
-    #println("Intersects: $(intersects)")
-    # intersects: each intersect is a cell corner of two inner points, the ones it's closest to
-    for far in intersects
-        point_distances = Vector{Tuple{Float64,Vertex}}()
-        for pt in pts
-            push!(point_distances, (distance(far, pt),pt))
-        end
-        point_distances = sort!(point_distances, by = x -> x[1])
-        min_point1 = point_distances[1][2]
-        min_point2 = point_distances[2][2]
-        #println("points closest to $(far): $(min_point1) and $(min_point2)")
-        s = get!(V, min_point1, Vector{Vertex}()); push!(s,far)
-        s = get!(V, min_point2, Vector{Vertex}()); push!(s,far)
-    end
-    #println("V after intersects: $(V)")
-
-    # find the triangles that share an edge
-    connected_Tri = Dict{Triangle,Vector{Triangle}}()
-    for T in inner_triangles
-        c1 = centers[T]
-        if length(inner_triangles)==1 && is_in_box(c1, bbox)
-            for p in (T.edge.origin, T.edge.next.origin, T.edge.prev.origin)
-                # in V: p is cell center
-                s = get!(V, p, Vector{Vertex}())
-                push!(s, c1)
-                #println("added $(c) to $(p)")
-            end
-        end
-        for e in (T.edge, T.edge.next, T.edge.prev)
-            he = e::HalfEdge
-            #println("Current edge: $(e) in $(T)")
-            if he.twin !== nothing && he.twin.face in inner_triangles 
-                T2 = he.twin.face
-                k = get!(connected_Tri, T, Vector{Triangle}()); push!(k, T2)
-            end
-        end
-    end
-
-    # the circumcenters are corners of all cell centers that are corners of connected triangles
-    for T in keys(connected_Tri)
-        c = centers[T]
-        for p in (T.edge.origin, T.edge.next.origin, T.edge.prev.origin)
-            # in V: p is voronoi-center
-            s = get!(V, p, Vector{Vertex}())
-            if is_in_box(c, bbox)
-                push!(s, c)
-                #println("added $(c) to $(p)")
-            end
-        end
-    end
 
     for pt in keys(V)
         V[pt] = sort_vertices_ccw!(unique(V[pt])) # sort the corners of each Voronoi polygon counterclockwise
     end
-    #println("V: $(V)")
+    #println("V after board corners: $(V)")
     return V
 end 
 
@@ -402,6 +464,7 @@ function areas(V::Dict{Vertex, Vector{Vertex}})::Dict{Int, Float64}
 	end
 	return Areas
 end
+
 
 #============================================================================================
 ============================================================================================#
