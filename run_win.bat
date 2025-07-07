@@ -1,1 +1,1 @@
-julia -i -e "using Pkg; Pkg.activate(\".\"); using Voronoi; main()"
+julia -i -e "ENV[\"GSK_RENDERER\"]=\"cairo\"; using Pkg; Pkg.activate(\".\"); using Voronoi; main()"
