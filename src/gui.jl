@@ -124,7 +124,10 @@ function main()
                     "Unentschieden!\nSpieler 1: $percent1%\nSpieler 2: $percent2%" :
                     "Spieler $win_player gewinnt!\nSpieler 1: $percent1%\nSpieler 2: $percent2%"
                 dialog = GtkDialog("Spiel beendet", (), 0, nothing)
-                push!(dialog.child, GtkLabel(msg))
+                title_lbl = GtkLabel(msg)
+                set_gtk_property!(title_lbl, :use_markup, true)
+                set_gtk_property!(title_lbl, :label, "<b><span size='large'>$msg</span></b>")
+                push!(dialog.child, title_lbl)
                 # ok_btn = GtkButton("OK")
                 # push!(dialog.child, ok_btn)
                 # signal_connect(ok_btn, "clicked") do _
