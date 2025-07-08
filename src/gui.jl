@@ -39,20 +39,10 @@ function main()
 
     `canvas(UserUnit)` lets GtkObservables automatically convert pixel position to [0,1] x [0,1].
     """
-    # win = GtkWindow("Voronoi")
-    # g = GtkGrid()
-    # c = canvas(UserUnit, 400, 400)
-    # frame = GtkFrame(c)
-    # push!(win,frame)
-
     win = GtkWindow("Voronoi")
-    g = GtkGrid()
     c = canvas(UserUnit, 400, 400)
     frame = GtkFrame(c)
-    g[1:2, 1] = frame
-    g.column_homogeneous = true
-    g.column_spacing = 15
-    push!(win, g)
+    push!(win, frame)
 
     state = Observable(new_game(t))
 

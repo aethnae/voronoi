@@ -92,6 +92,13 @@ function recursive_flip!(ab::Edge, D::Delaunay)::Delaunay
 	return D
 end
 
+"""
+	insert_point_no_flip!(p::Vertex, D::Delaunay)::Tuple{Delaunay,Edge,Edge,Edge}
+
+Inserts point `p` into triangulation `D` by constructing new triangles. If
+`p` is inside triangle ABC, it is replaced by ABP, BCP and BAP. The old edges
+AB, BC and CA are also returned such that a `flip!` can be executed.
+"""
 function insert_point_no_flip!(p::Vertex, D::Delaunay)::Tuple{Delaunay,Edge,Edge,Edge}
 	@assert !isempty(D.triangles) "This should not be empty!"
 
@@ -112,6 +119,23 @@ function insert_point_no_flip!(p::Vertex, D::Delaunay)::Tuple{Delaunay,Edge,Edge
 	return D + abp + bcp + cap, ab, bc, ca
 end
 
+"""
+	insert_point!(p::Vertex, D::Delaunay)::Delaunay
+
+Calls `insert_point_no_flip!` to split triangle ABC containing `p`
+into ABP, BCP and CAP. Then calls `recursive_flip!` to re-satisfy
+the Delaunay condition.
+
+
+# Example
+```julia
+julia> D = Delaunay();
+
+julia> insert_point!(Vertex(0.6, 0.9), D)
+Tri{Border[(0.0, 3.0)->(0.0, -2.0)], [(0.0, -2.0)->(0.6, 0.9)], [(0.6, 0.9)->(0.0, 3.0)]}
+Tri{Border[(0.0, -2.0)->(3.0, 0.0)], [(3.0, 0.0)->(0.6, 0.9)], [(0.6, 0.9)->(0.0, -2.0)]}
+Tri{Border[(3.0, 0.0)->(0.0, 3.0)], [(0.0, 3.0)->(0.6, 0.9)], [(0.6, 0.9)->(3.0, 0.0)]}
+"""
 function insert_point!(p::Vertex, D::Delaunay)::Delaunay
 	D,ab,bc,ca = insert_point_no_flip!(p,D)
 	D = recursive_flip!(ab,D)
