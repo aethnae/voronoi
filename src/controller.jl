@@ -55,8 +55,7 @@ game_over(state::GameState) = all(v == 0 for v in values(state.turns_left))
 Returns a Dict mapping player numbers to their Voronoi area.
 """
 function compute_areas(state::GameState)
-    bbox = [Vertex(0.0, 0.0), Vertex(1.0, 0.0), Vertex(1.0, 1.0), Vertex(0.0, 1.0)]
-    V = voronoi(state.delaunay, bbox)
+    V = voronoi_2(state.delaunay)
     return areas(V)
 end
 
