@@ -1,9 +1,9 @@
 @testset "Triangulation, low level logic" begin
 	println("Starting $(Tests) low level logic (is_left) tests.")
 	for _ = 1:Tests
-		a = randomVertex()
-		b = randomVertex()
-		p = randomVertex()
+		a = randomVertex(rounded = false)
+		b = randomVertex(rounded = false)
+		p = randomVertex(rounded = false)
 
 		if a == b
 			continue
@@ -37,7 +37,7 @@ end
 	D = Delaunay()
 
 	for num = 1:Tests
-		p = randomVertex()
+		p = randomVertex(rounded = false)
 		D = insert_point!(p, D)
 
 		@test length(D.triangles) == 1 + 2*num

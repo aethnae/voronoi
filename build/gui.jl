@@ -60,7 +60,8 @@ function main()
         paint(ctx)
 
         try
-            V = voronoi_2(st.delaunay)
+            bbox = [Vertex(0.0, 0.0), Vertex(1.0, 0.0), Vertex(1.0, 1.0), Vertex(0.0, 1.0)]
+            V = voronoi(st.delaunay, bbox)
             for (center, corners) in V
                 verts = [(v.x, v.y) for v in corners]
                 if center.player !== nothing &&
